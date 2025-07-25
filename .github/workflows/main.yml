@@ -1,0 +1,22 @@
+name: Infrastructure
+
+on:
+  workflow_dispatch:
+
+jobs:
+  infrastructure:
+    name: Create/Update sever
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - name: Deploy with Terraform
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+        run: |
+            cd ./projects/main/terraform
+            terraform init
+            terraform plan
