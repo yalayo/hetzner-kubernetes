@@ -17,6 +17,6 @@ jobs:
         env:
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
         run: |
-            cd ./projects/main/terraform
+            cd ./terraform
             terraform init
             terraform plan
