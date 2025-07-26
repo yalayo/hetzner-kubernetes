@@ -25,5 +25,4 @@ jobs:
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_kEY }}
         run: |
             cd ./terraform
-            nix develop ../. --command terraform init
-            nix develop ../. --command terraform apply -auto-approve
+            nix develop ../. --command ./run-terraform.sh
