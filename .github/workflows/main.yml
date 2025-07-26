@@ -26,4 +26,8 @@ jobs:
         run: |
             cd ./terraform
             chmod +x run-terraform.sh
-            nix develop ../. --command ./run-terraform.sh
+            nix develop ../. --command bash -c '
+            export PATH="/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin:$PATH"
+            terraform init
+            terraform apply -auto-approve
+          '
