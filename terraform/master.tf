@@ -1,0 +1,74 @@
+## Variable to store the ssh private key
+variable "ssh_private_key" {
+  sensitive = true
+}
+
+## VM
+resource "hcloud_server" "master" { 
+  name        = "prod-master"
+  image       = "ubuntu-24.04"
+  location    = "nbg1"
+  server_type = "cax21" 
+  keep_disk   = true
+  ssh_keys    = [data.hcloud_ssh_key.ssh_key.id] 
+  firewall_ids = [hcloud_firewall.common-firewall.id]
+
+  user_data = <<-EOF
+    #!/bin/bash
+    sudo apt-get update
+    sudo apt-get -y install ca-certificates curl
+    sudo sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
+  EOF
+
+  public_net {
+    ipv6_enabled = true
+    ipv4_enabled = true
+  }
+
+  network {
+    network_id = hcloud_network.network.id
+    ip         = "10.0.1.1"
+    alias_ips  = [
+      "10.0.1.2",
+      "10.0.1.3"
+    ]
+  }
+
+  depends_on = [
+    hcloud_network_subnet.network-subnet
+  ]
+}
+
+# nixos everywhere
+module "system-build" {
+  source            = "github.com/nix-community/nixos-anywhere//terraform/nix-build"
+  # with flakes
+  attribute         = ".#nixosConfigurations.mymachine.config.system.build.toplevel"
+  # without flakes
+  # file can use (pkgs.nixos []) function from nixpkgs
+  #file              = "${path.module}/../.."
+  #attribute         = "config.system.build.toplevel"
+}
+
+module "disko" {
+  source         = "github.com/nix-community/nixos-anywhere//terraform/nix-build"
+  # with flakes
+  attribute      = ".#nixosConfigurations.mymachine.config.system.build.diskoScript"
+  # without flakes
+  # file can use (pkgs.nixos []) function from nixpkgs
+  #file           = "${path.module}/../.."
+  #attribute      = "config.system.build.diskoScript"
+}
+
+module "install" {
+  source            = "github.com/nix-community/nixos-anywhere//terraform/install"
+  nixos_system      = module.system-build.result.out
+  nixos_partitioner = module.disko.result.out
+  target_host       = hcloud_server.master.ipv4_address
+  build_on_remote   = true
+  ssh_private_key   = var.ssh_private_key
+
+  depends_on = [
+    hcloud_server.master
+  ]
+}
