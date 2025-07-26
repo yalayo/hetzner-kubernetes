@@ -25,4 +25,5 @@ jobs:
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_kEY }}
         run: |
             cd ./terraform
+            chmod +x run-terraform.sh
             nix develop ../. --command ./run-terraform.sh
