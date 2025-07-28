@@ -12,9 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Nix
-        uses: cachix/install-nix-action@v22
-        with:
-          nix_path: nixpkgs=channel:nixos-24.05
+        uses: DeterminateSystems/nix-installer-action@v10
+      - name: Configure Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v6
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -26,9 +26,7 @@ jobs:
         run: |
             cd ./terraform
             chmod +x run-terraform.sh
-            export PATH="/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin:$PATH"
             nix develop ../. --command bash -c '
-              export PATH="/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin:$PATH"
               terraform init
               terraform apply -auto-approve
             '
