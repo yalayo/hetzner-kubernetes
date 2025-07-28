@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 
 {
-  imports = [ <nixpkgs/nixos/modules/installer/scan/not-detected.nix> ];
+  imports = [ "${pkgs.path}/nixos/modules/installer/scan/not-detected.nix" ];
 
   system.stateVersion = "24.05";
 
