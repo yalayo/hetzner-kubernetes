@@ -31,7 +31,7 @@ resource "hcloud_server" "master" {
       # Install Nix
       "apt-get update",
       "apt-get install -y curl ca-certificates",
-      "sh <(curl -L https://nixos.org/nix/install) --daemon",
+      "curl -L https://nixos.org/nix/install | bash -s -- --daemon",
       "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh",
 
       "nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix",
