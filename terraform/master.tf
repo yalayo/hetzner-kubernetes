@@ -3,6 +3,38 @@ variable "ssh_private_key" {
   sensitive = true
 }
 
+## Open ports
+resource "hcloud_firewall" "cluster" { 
+  name = "cluster-firewall"
+
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "22" 
+    source_ips = [
+      "${var.firewall_source_ip}/0" 
+    ]
+  }
+
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "80" 
+    source_ips = [
+      "${var.firewall_source_ip}/0" 
+    ]
+  }
+
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "443" 
+    source_ips = [
+      "${var.firewall_source_ip}/0" 
+    ]
+  }
+}
+
 ## VM
 resource "hcloud_server" "master" { 
   name        = "prod-master"
@@ -11,7 +43,7 @@ resource "hcloud_server" "master" {
   server_type = "cax21" 
   keep_disk   = true
   ssh_keys    = [data.hcloud_ssh_key.ssh_key.id] 
-  firewall_ids = [hcloud_firewall.common-firewall.id]
+  firewall_ids = [hcloud_firewall.cluster.id]
 
   user_data = <<-EOF
     #!/bin/bash
