@@ -15,6 +15,15 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v10
       - name: Configure Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@v6
+      - name: Build NixOS system
+        run: |
+          nix build .#nixosConfigurations.mymachine.config.system.build.toplevel
+          echo "NIXOS_SYSTEM=$(readlink -f ./result)" >> $GITHUB_ENV
+
+      - name: Build disko script
+        run: |
+          nix build .#nixosConfigurations.mymachine.config.system.build.diskoScript
+          echo "NIXOS_DISKO=$(readlink -f ./result)" >> $GITHUB_ENV
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -23,6 +32,8 @@ jobs:
         env:
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_kEY }}
+          TF_VAR_nixos_system: ${{ env.NIXOS_SYSTEM }}
+          TF_VAR_nixos_disko: ${{ env.NIXOS_DISKO }}
         run: |
             cd ./terraform
             chmod +x run-terraform.sh
