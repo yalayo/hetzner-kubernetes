@@ -71,16 +71,3 @@ variable "nixos_disko" {
   type        = string
   description = "Path to the built disko script"
 }
-
-module "install" {
-  source            = "github.com/nix-community/nixos-anywhere//terraform/install"
-  nixos_system      = var.nixos_system
-  nixos_partitioner = var.nixos_disko
-  target_host       = hcloud_server.master.ipv4_address
-  build_on_remote   = true
-  ssh_private_key   = var.ssh_private_key
-
-  depends_on = [
-    hcloud_server.master
-  ]
-}
