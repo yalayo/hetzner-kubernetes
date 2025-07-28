@@ -1,8 +1,4 @@
-{ config, pkgs, ... }:
-
-{
-  imports = [ "${pkgs.path}/nixos/modules/installer/scan/not-detected.nix" ];
-
+{ config, pkgs, ... }: {
   system.stateVersion = "24.05";
 
   boot.loader.systemd-boot.enable = true;
