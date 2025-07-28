@@ -27,6 +27,7 @@ resource "hcloud_server" "master" {
   }
 
   provisioner "remote-exec" {
+    interpreter = ["/bin/bash", "-c"]
     inline = [
       # Install Nix
       "apt-get update",
