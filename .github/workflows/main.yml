@@ -15,8 +15,6 @@ jobs:
         uses: cachix/install-nix-action@v22
         with:
           nix_path: nixpkgs=channel:nixos-24.05
-      - name: Install required packages globally
-        run: nix-env -iA nixpkgs.nix nixpkgs.git
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -28,6 +26,7 @@ jobs:
         run: |
             cd ./terraform
             chmod +x run-terraform.sh
+            export PATH="/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin:$PATH"
             nix develop ../. --command bash -c '
               export PATH="/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin:$PATH"
               terraform init
