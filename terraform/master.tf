@@ -20,6 +20,30 @@ resource "hcloud_server" "master" {
     sudo sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
   EOF
 
+  connection {
+    type        = "ssh"
+    user        = "root"
+    private_key = var.ssh_private_key
+    host        = self.ipv4_address
+  }
+
+  # Upload your NixOS configuration files
+  provisioner "file" {
+    source      = "nixos"
+    destination = "/mnt/nixos"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      # Install Nix
+      "apt-get update",
+      "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh",
+
+      "nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix",
+      "nixos-install --flake /mnt/nixos#prod-master --no-root-password"
+    ]
+  }
+
   public_net {
     ipv6_enabled = true
     ipv4_enabled = true
