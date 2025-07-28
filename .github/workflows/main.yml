@@ -36,8 +36,5 @@ jobs:
           TF_VAR_nixos_disko: ${{ env.NIXOS_DISKO }}
         run: |
             cd ./terraform
-            chmod +x run-terraform.sh
-            nix develop ../. --command bash -c '
-              terraform init
-              terraform apply -auto-approve
-            '
+            terraform init
+            terraform apply -auto-approve
