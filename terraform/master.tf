@@ -27,10 +27,9 @@ resource "hcloud_server" "master" {
 
   network {
     network_id = hcloud_network.network.id
-    ip         = "10.0.1.1"
+    ip         = "10.1.1.1"
     alias_ips  = [
-      "10.0.1.2",
-      "10.0.1.3"
+      "10.1.1.2"
     ]
   }
 
