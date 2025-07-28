@@ -61,13 +61,3 @@ resource "hcloud_server" "master" {
     hcloud_network_subnet.network-subnet
   ]
 }
-
-variable "nixos_system" {
-  type        = string
-  description = "Path to the built NixOS system closure"
-}
-
-variable "nixos_disko" {
-  type        = string
-  description = "Path to the built disko script"
-}
