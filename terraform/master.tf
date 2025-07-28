@@ -3,38 +3,6 @@ variable "ssh_private_key" {
   sensitive = true
 }
 
-## Open ports
-resource "hcloud_firewall" "cluster" { 
-  name = "cluster-firewall"
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "22" 
-    source_ips = [
-      "${var.firewall_source_ip}/0" 
-    ]
-  }
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "80" 
-    source_ips = [
-      "${var.firewall_source_ip}/0" 
-    ]
-  }
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "443" 
-    source_ips = [
-      "${var.firewall_source_ip}/0" 
-    ]
-  }
-}
-
 ## VM
 resource "hcloud_server" "master" { 
   name        = "prod-master"

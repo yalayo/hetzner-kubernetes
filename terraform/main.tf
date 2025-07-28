@@ -29,8 +29,8 @@ provider "hcloud" {
 }
 
 ## Open ports
-resource "hcloud_firewall" "common-firewall" { 
-  name = "common-firewall"
+resource "hcloud_firewall" "cluster" { 
+  name = "cluster-firewall"
 
   rule {
     direction = "in"
@@ -62,7 +62,7 @@ resource "hcloud_firewall" "common-firewall" {
 
 ## Networking
 resource "hcloud_network" "network" {
-  name     = "network"
+  name     = "cluster-network"
   ip_range = "10.1.0.0/16"
 }
 
