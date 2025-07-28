@@ -13,8 +13,6 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v10
-      - name: Configure Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v6
       - name: Build NixOS system
         run: |
           nix build .#nixosConfigurations.mymachine.config.system.build.toplevel
