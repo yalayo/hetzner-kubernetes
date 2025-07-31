@@ -50,7 +50,14 @@ resource "null_resource" "enable_rescue" {
   provisioner "local-exec" {
     command = <<EOT
       set -eux
-      export PATH=$PATH:/usr/local/bin
+      # install hcloud CLI on-the-fly if missing
+      if ! command -v hcloud >/dev/null; then
+        curl -fsSL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz -o /tmp/hcloud.tar.gz
+        tar -xzf /tmp/hcloud.tar.gz -C /tmp
+        chmod +x /tmp/hcloud
+        mv /tmp/hcloud /usr/local/bin/hcloud
+      fi
+      
       hcloud server enable-rescue ${hcloud_server.master.name} --type linux64
       hcloud server reset ${hcloud_server.master.name}
     EOT
