@@ -41,11 +41,12 @@ jobs:
             terraform init
             terraform apply -auto-approve -target=hcloud_server.master -auto-approve
 
-            # Capture the output
-            MASTER_IP=$(terraform output -raw master_ip)
+            # Capture output, redirect stderr to avoid debug logs polluting output
+            MASTER_IP=$(terraform output -raw master_ip 2>/dev/null)
 
             # Save it to the GitHub Actions environment
             echo "MASTER_IP=$MASTER_IP" >> $GITHUB_ENV
+            echo "Captured MASTER_IP: $MASTER_IP
 
       - name: Wait for rescue SSH and inject public key
         env:
