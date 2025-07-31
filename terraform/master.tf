@@ -40,7 +40,7 @@ resource "hcloud_server" "master" {
 
     inline = [
       # Fail early if not set
-      'if [ -z "$K3S_TOKEN" ]; then echo "K3S_TOKEN missing"; exit 1; fi',
+      "if [ -z \"$K3S_TOKEN\" ]; then echo \"K3S_TOKEN missing\"; exit 1; fi",
 
       # Install Nix
       "apt-get update",
