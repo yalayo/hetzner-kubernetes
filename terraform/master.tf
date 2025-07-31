@@ -49,7 +49,7 @@ resource "hcloud_server" "master" {
       "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh",
 
       # (Export it for downstream tools if needed)
-      'export K3S_TOKEN',
+      "export K3S_TOKEN",
 
       "nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix",
       "nixos-install --flake /mnt/nixos#prod-master --no-root-password"
