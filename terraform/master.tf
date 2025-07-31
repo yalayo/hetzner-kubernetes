@@ -32,13 +32,11 @@ resource "hcloud_server" "master" {
   }
 
   provisioner "remote-exec" {
-    interpreter = ["/bin/bash", "-c"]
-
-    environment = {
-      K3S_TOKEN = var.k3s_token
-    }
-
     inline = [
+      # Export the token without using the unsupported environment block
+      "export K3S_TOKEN='${var.k3s_token}'",
+
+
       # Fail early if not set
       "if [ -z \"$K3S_TOKEN\" ]; then echo \"K3S_TOKEN missing\"; exit 1; fi",
 
