@@ -62,15 +62,19 @@ jobs:
           
           # Wait until rescue mode is active and a password shows up
           RESCUE_PASSWORD=""
-          for i in $(seq 1 30); do
-            RESCUE_JSON=$(hcloud server describe prod-master -o json)
-            RESCUE_PASSWORD=$(echo "$RESCUE_JSON" | jq -r '.rescue.password // empty')
-            if [[ -n "$RESCUE_PASSWORD" ]]; then
-              echo "Rescue password obtained."
-              break
-            fi
-            echo "Rescue password not yet available; sleeping (attempt $i)..."
-            sleep 5
+          for i in {1..24}; do  # ~2 min max
+              RESCUE_JSON=$(hcloud server describe prod-master -o json)
+              ENABLED=$(echo "$RESCUE_JSON" | jq -r '.rescue.enabled // false')
+              RESCUE_PASSWORD=$(echo "$RESCUE_JSON" | jq -r '.rescue.password // empty')
+
+              if [[ "$ENABLED" == "true" && -n "$RESCUE_PASSWORD" ]]; then
+                  echo "Rescue mode active after $((i*5))s"
+                  echo "Rescue password: $RESCUE_PASSWORD"
+                  break
+              fi
+
+              echo "Waiting for rescue mode... attempt $i"
+              sleep 15
           done
 
           if [[ -z "$RESCUE_PASSWORD" ]]; then
