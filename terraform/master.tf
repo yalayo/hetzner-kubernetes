@@ -77,7 +77,7 @@ resource "null_resource" "bootstrap_nixos" {
 
   # Upload and install bootstrap script
   provisioner "file" {
-    content = <<'EOF'
+    content = <<-EOF
       #!/bin/bash
       set -euxo pipefail
 
