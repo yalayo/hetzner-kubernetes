@@ -51,23 +51,14 @@ jobs:
           # Get IP and rescue password
           IP=$(terraform output -raw master_ip)
           
-          # Wait until rescue mode is active and a password shows up
-          RESCUE_PASSWORD=""
-          for i in {1..24}; do  # ~2 min max
-              RESCUE_PASSWORD=$(hcloud server enable-rescue prod-master --type linux64)
-              echo $RESCUE_PASSWORD
-              if [[ "$ENABLED" == "true" && -n "$RESCUE_PASSWORD" ]]; then
-                  echo "Rescue mode active after $((i*5))s"
-                  echo "Rescue password: $RESCUE_PASSWORD"
-                  break
-              fi
+          RAW=$(hcloud server enable-rescue prod-master --type linux64)
+          RESCUE_PASSWORD=$(printf "%s" "$RAW" | grep -oP '(?<=root password: ).*' | awk '{print $1}')
+          RESCUE_PASSWORD=${RESCUE_PASSWORD#\"}; RESCUE_PASSWORD=${RESCUE_PASSWORD%\"}
+          RESCUE_PASSWORD=${RESCUE_PASSWORD#\'}; RESCUE_PASSWORD=${RESCUE_PASSWORD%\'} 
 
-              echo "Waiting for rescue mode... attempt $i"
-              sleep 15
-          done
-
-          if [[ -z "$RESCUE_PASSWORD" ]]; then
-            echo "ERROR: timed out waiting for rescue password" >&2
+          if [ -z "$RESCUE_PASSWORD" ]; then
+            echo "Failed to parse rescue password from output:"
+            echo "$RAW"
             exit 1
           fi
 
