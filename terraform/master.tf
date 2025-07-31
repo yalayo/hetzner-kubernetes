@@ -36,10 +36,8 @@ resource "hcloud_server" "master" {
       #!/bin/bash
       set -euxo pipefail
 
-      # Export the token early
       export K3S_TOKEN='${var.k3s_token}'
 
-      # Fail early if not set
       if [ -z "$K3S_TOKEN" ]; then
         echo "K3S_TOKEN missing"
         exit 1
@@ -52,20 +50,15 @@ resource "hcloud_server" "master" {
       # Install Nix
       curl -L https://nixos.org/nix/install | bash -s -- --daemon
 
-      # Enable experimental features (nix-command + flakes)
+      # Enable nix-command and flakes
       mkdir -p /etc/nix
-      cat <<EOF > /etc/nix/nix.conf
+      cat <<NIXCONF > /etc/nix/nix.conf
       experimental-features = nix-command flakes
-      EOF
+      NIXCONF
 
-      # Source the profile (bash is used so 'source' works)
-      # shellcheck source=/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+      # Load Nix profile (requires bash)
       source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-      # Preserve token for downstream tools
-      export K3S_TOKEN
-
-      # Run the disko and install
       nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix
       nixos-install --flake /mnt/nixos#prod-master --no-root-password
     EOF
