@@ -50,6 +50,7 @@ resource "null_resource" "enable_rescue" {
   provisioner "local-exec" {
     command = <<EOT
       set -eux
+      export PATH=$PATH:/usr/local/bin
       hcloud server enable-rescue ${hcloud_server.master.name} --type linux64
       hcloud server reset ${hcloud_server.master.name}
     EOT
