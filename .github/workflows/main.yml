@@ -50,6 +50,7 @@ jobs:
 
           # Get IP and rescue password
           IP=$(terraform output -raw master_ip)
+          echo "Master IP: $IP"
           
           RAW=$(hcloud server enable-rescue prod-master --type linux64)
           RESCUE_PASSWORD=$(printf "%s" "$RAW" | grep -oP '(?<=root password: ).*' | awk '{print $1}')
