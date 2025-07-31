@@ -70,6 +70,9 @@ resource "null_resource" "enable_rescue" {
         fi
       fi
 
+      export HCLOUD_TOKEN="${var.hcloud_token}"
+
+      hcloud context create ci --token "$HCLOUD_TOKEN" --switch || true
       hcloud server enable-rescue ${hcloud_server.master.name} --type linux64
       hcloud server reset ${hcloud_server.master.name}
     EOT
