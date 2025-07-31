@@ -80,7 +80,6 @@ jobs:
           echo '$PUBKEY' >> ~/.ssh/authorized_keys
           chmod 700 ~/.ssh
           chmod 600 ~/.ssh/authorized_keys
-          reboot
           EOF
 
           # Disable rescue mode before rebooting
