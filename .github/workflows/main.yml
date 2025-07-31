@@ -59,8 +59,24 @@ jobs:
 
           # Get IP and rescue password
           IP=$(terraform output -raw master_ip)
-          RESCUE_JSON=$(hcloud server describe prod-master -o json)
-          RESCUE_PASSWORD=$(echo "$RESCUE_JSON" | jq -r '.rescue.password')
+          
+          # Wait until rescue mode is active and a password shows up
+          RESCUE_PASSWORD=""
+          for i in $(seq 1 30); do
+            RESCUE_JSON=$(hcloud server describe prod-master -o json)
+            RESCUE_PASSWORD=$(echo "$RESCUE_JSON" | jq -r '.rescue.password // empty')
+            if [[ -n "$RESCUE_PASSWORD" ]]; then
+              echo "Rescue password obtained."
+              break
+            fi
+            echo "Rescue password not yet available; sleeping (attempt $i)..."
+            sleep 5
+          done
+
+          if [[ -z "$RESCUE_PASSWORD" ]]; then
+            echo "ERROR: timed out waiting for rescue password" >&2
+            exit 1
+          fi
 
           echo "Waiting for rescue SSH to accept password..."
           until sshpass -p "$RESCUE_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$IP 'echo up'; do
