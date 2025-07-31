@@ -43,46 +43,8 @@ resource "hcloud_server" "master" {
   ]
 }
 
-# Phase 1: enable rescue mode and reboot into it
-resource "null_resource" "enable_rescue" {
-  depends_on = [hcloud_server.master]
-
-  provisioner "local-exec" {
-    command = <<EOT
-      set -eux
-      # install hcloud CLI on-the-fly if missing
-      # Install hcloud CLI if missing
-      if ! command -v hcloud >/dev/null 2>&1; then
-        curl -fsSL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz -o /tmp/hcloud.tar.gz
-        tar -xzf /tmp/hcloud.tar.gz -C /tmp
-        chmod +x /tmp/hcloud
-
-        if [ -w /usr/local/bin ]; then
-          mv /tmp/hcloud /usr/local/bin/hcloud
-          export PATH=/usr/local/bin:$PATH
-        elif command -v sudo >/dev/null 2>&1; then
-          sudo mv /tmp/hcloud /usr/local/bin/hcloud
-          export PATH=/usr/local/bin:$PATH
-        else
-          mkdir -p ~/.local/bin
-          mv /tmp/hcloud ~/.local/bin/hcloud
-          export PATH=~/.local/bin:$PATH
-        fi
-      fi
-
-      export HCLOUD_TOKEN="${var.hcloud_token}"
-
-      hcloud context create ci --token "$HCLOUD_TOKEN" --switch || true
-      hcloud server enable-rescue ${hcloud_server.master.name} --type linux64
-      hcloud server reset ${hcloud_server.master.name}
-    EOT
-  }
-}
-
-# Phase 2: bootstrap NixOS from rescue system
+# Bootstrap NixOS from rescue system
 resource "null_resource" "bootstrap_nixos" {
-  depends_on = [null_resource.enable_rescue]
-
   # Upload nixos directory into rescue
   provisioner "file" {
     source      = "nixos"
@@ -156,4 +118,8 @@ resource "null_resource" "bootstrap_nixos" {
       "/bin/bash /tmp/bootstrap.sh"
     ]
   }
+}
+
+output "master_ip" {
+  value = hcloud_server.master.ipv4_address
 }

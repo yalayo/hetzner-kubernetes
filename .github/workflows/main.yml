@@ -39,4 +39,49 @@ jobs:
 
             cd ./terraform
             terraform init
-            terraform apply -auto-approve
+            terraform apply -auto-approve -target=hcloud_server.master -auto-approve
+      - name: Enable rescue mode and reboot into it
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+        run: |
+          set -eux
+          cd terraform
+          # enable rescue and reset
+          hcloud server enable-rescue prod-master --type linux64
+          hcloud server reset prod-master
+
+      - name: Wait for rescue SSH and inject public key
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+        run: |
+          set -eux
+          cd terraform
+
+          # Get IP and rescue password
+          IP=$(terraform output -raw master_ip)
+          RESCUE_JSON=$(hcloud server describe prod-master -o json)
+          RESCUE_PASSWORD=$(echo "$RESCUE_JSON" | jq -r '.rescue.password')
+
+          echo "Waiting for rescue SSH to accept password..."
+          until sshpass -p "$RESCUE_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$IP 'echo up'; do
+            sleep 5
+          done
+
+          echo "Injecting public key into rescue root account"
+          # Ensure the public key is available; you can store it as a secret named SSH_PUBLIC_KEY
+          PUBKEY="${{ secrets.SSH_PUBLIC_KEY }}"
+          sshpass -p "$RESCUE_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$IP bash -eux <<EOF
+          mkdir -p ~/.ssh
+          echo '$PUBKEY' >> ~/.ssh/authorized_keys
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/authorized_keys
+
+      - name: Full Terraform apply (bootstrap NixOS)
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
+        run: |
+          set -eux
+          cd terraform
+          terraform apply -auto-approve
