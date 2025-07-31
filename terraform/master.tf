@@ -51,7 +51,7 @@ resource "null_resource" "enable_rescue" {
     command = <<EOT
       bash -c 'set -eux
       hcloud server enable-rescue ${hcloud_server.master.name} --type linux64
-      hcloud server reset ${hcloud_server.master.name}
+      hcloud server reset ${hcloud_server.master.name}'
     EOT
   }
 }
