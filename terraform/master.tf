@@ -3,6 +3,11 @@ variable "ssh_private_key" {
   sensitive = true
 }
 
+## Variable to the k3s token
+variable "k3s_token" {
+  sensitive = true
+}
+
 ## VM
 resource "hcloud_server" "master" { 
   name        = "prod-master"
@@ -28,12 +33,23 @@ resource "hcloud_server" "master" {
 
   provisioner "remote-exec" {
     interpreter = ["/bin/bash", "-c"]
+
+    environment = {
+      K3S_TOKEN = var.k3s_token
+    }
+
     inline = [
+      # Fail early if not set
+      'if [ -z "$K3S_TOKEN" ]; then echo "K3S_TOKEN missing"; exit 1; fi',
+
       # Install Nix
       "apt-get update",
       "apt-get install -y curl ca-certificates",
       "curl -L https://nixos.org/nix/install | bash -s -- --daemon",
       "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh",
+
+      # (Export it for downstream tools if needed)
+      'export K3S_TOKEN',
 
       "nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix",
       "nixos-install --flake /mnt/nixos#prod-master --no-root-password"

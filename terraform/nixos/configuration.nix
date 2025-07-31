@@ -1,4 +1,8 @@
-{ config, pkgs, ... }: {
+{ config, pkgs, ... }: 
+
+let
+  tokenValue = builtins.getEnv "K3S_TOKEN";
+in {
   system.stateVersion = "24.05";
 
   boot.loader.systemd-boot.enable = true;
@@ -25,7 +29,7 @@
     extraFlags = toString [
       # "--debug" # Optionally add additional args to k3s
     ];
-    token = "testPassword";
+    token = if tokenValue == "" then throw "K3S_TOKEN is not set" else tokenValue;
     clusterInit = true;
   };
 
