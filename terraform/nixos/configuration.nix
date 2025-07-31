@@ -1,8 +1,18 @@
-{ config, pkgs, ... }: 
+{ config, pkgs, ... }:
 
 let
   tokenValue = builtins.getEnv "K3S_TOKEN";
 in {
+  imports = [
+    ./disko.nix
+    (import <nixpkgs> {}).lib // optional if you need helpers
+    # import the disko upstream module from the flake input:
+    # in a flake context you can access it via the flake’s output; if you want to use the input directly:
+    # e.g. (import ../.direnv/inputs.disko).nixosModules.disko
+    # but in your flake you’d write:
+    disko.nixosModules.disko
+  ];
+
   system.stateVersion = "24.05";
 
   boot.loader.systemd-boot.enable = true;
@@ -26,9 +36,7 @@ in {
   services.k3s = {
     enable = true;
     role = "server";
-    extraFlags = toString [
-      # "--debug" # Optionally add additional args to k3s
-    ];
+    extraFlags = toString [ ];
     token = if tokenValue == "" then throw "K3S_TOKEN is not set" else tokenValue;
     clusterInit = true;
   };

@@ -1,8 +1,9 @@
-{ config, lib, ... }: {
+# disko.nix — plain module
+{
   disko.devices = {
     disk.main = {
       type = "disk";
-      device = "/dev/sda";  # Or /dev/nvme0n1 for NVMe-based servers
+      device = "/dev/sda";  # or /dev/nvme0n1
       content = {
         type = "gpt";
         partitions = {
