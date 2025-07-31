@@ -40,15 +40,6 @@ jobs:
             cd ./terraform
             terraform init
             terraform apply -auto-approve -target=hcloud_server.master -auto-approve
-      - name: Enable rescue mode and reboot into it
-        env:
-          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
-        run: |
-          set -eux
-          cd terraform
-          # enable rescue and reset
-          hcloud server enable-rescue prod-master --type linux64
-          hcloud server reset prod-master
 
       - name: Wait for rescue SSH and inject public key
         env:
@@ -63,7 +54,7 @@ jobs:
           # Wait until rescue mode is active and a password shows up
           RESCUE_PASSWORD=""
           for i in {1..24}; do  # ~2 min max
-              RESCUE_JSON=$(hcloud server describe prod-master -o json)
+              RESCUE_JSON=$(hcloud server enable-rescue prod-master --type linux64 --output json)
               ENABLED=$(echo "$RESCUE_JSON" | jq -r '.rescue.enabled // false')
               RESCUE_PASSWORD=$(echo "$RESCUE_JSON" | jq -r '.rescue.password // empty')
 
@@ -81,6 +72,8 @@ jobs:
             echo "ERROR: timed out waiting for rescue password" >&2
             exit 1
           fi
+
+          hcloud server reset prod-master
 
           echo "Waiting for rescue SSH to accept password..."
           until sshpass -p "$RESCUE_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$IP 'echo up'; do
