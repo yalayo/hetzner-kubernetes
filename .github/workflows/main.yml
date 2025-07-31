@@ -55,8 +55,6 @@ jobs:
         run: |
           set -eux
           cd terraform
-
-          echo "Master IP: $$MASTER_IP"
           
           RAW=$(hcloud server enable-rescue prod-master --type linux64)
           RESCUE_PASSWORD=$(printf "%s" "$RAW" | grep -oP '(?<=root password: ).*' | awk '{print $1}')
@@ -72,7 +70,7 @@ jobs:
           hcloud server reset prod-master
 
           echo "Waiting for rescue SSH to accept password..."
-          until sshpass -p "$RESCUE_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$$MASTER_IP 'echo up'; do
+          until sshpass -p "$RESCUE_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$MASTER_IP 'echo up'; do
             sleep 5
           done
 
