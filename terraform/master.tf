@@ -25,53 +25,6 @@ resource "hcloud_server" "master" {
     host        = self.ipv4_address
   }
 
-  # Upload your NixOS configuration files
-  provisioner "file" {
-    source      = "nixos"
-    destination = "/mnt/nixos"
-  }
-
-  provisioner "file" {
-    content     = <<-EOF
-      #!/bin/bash
-      set -euxo pipefail
-
-      export K3S_TOKEN='${var.k3s_token}'
-
-      if [ -z "$K3S_TOKEN" ]; then
-        echo "K3S_TOKEN missing"
-        exit 1
-      fi
-
-      # Install Nix non-interactively
-      apt-get update
-      DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates
-
-      # Install Nix
-      curl -L https://nixos.org/nix/install | bash -s -- --daemon
-
-      # Enable nix-command and flakes
-      mkdir -p /etc/nix
-      cat <<NIXCONF > /etc/nix/nix.conf
-      experimental-features = nix-command flakes
-      NIXCONF
-
-      # Load Nix profile (requires bash)
-      source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-
-      nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix
-      nixos-install --flake /mnt/nixos#prod-master --no-root-password
-    EOF
-    destination = "/tmp/bootstrap.sh"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "chmod +x /tmp/bootstrap.sh",
-      "/bin/bash -e /tmp/bootstrap.sh"
-    ]
-  }
-
   public_net {
     ipv6_enabled = true
     ipv4_enabled = true
@@ -88,4 +41,96 @@ resource "hcloud_server" "master" {
   depends_on = [
     hcloud_network_subnet.network-subnet
   ]
+}
+
+# Phase 1: enable rescue mode and reboot into it
+resource "null_resource" "enable_rescue" {
+  depends_on = [hcloud_server.master]
+
+  provisioner "local-exec" {
+    command = <<EOT
+      set -eux
+      hcloud server enable-rescue ${hcloud_server.master.name} --type linux64
+      hcloud server reset ${hcloud_server.master.name}
+    EOT
+  }
+}
+
+# Phase 2: bootstrap NixOS from rescue system
+resource "null_resource" "bootstrap_nixos" {
+  depends_on = [null_resource.enable_rescue]
+
+  # Upload nixos directory into rescue
+  provisioner "file" {
+    source      = "nixos"
+    destination = "/tmp/nixos"
+    connection {
+      type        = "ssh"
+      user        = "root"
+      host        = hcloud_server.master.ipv4_address
+      private_key = var.ssh_private_key
+      timeout     = "2m"
+      # retry to cope with the fact it may take a bit to drop into rescue and SSH accept
+      bastion_host = null
+    }
+  }
+
+  # Upload and install bootstrap script
+  provisioner "file" {
+    content = <<'EOF'
+      #!/bin/bash
+      set -euxo pipefail
+
+      # K3S_TOKEN is injected via Terraform interpolation
+      export K3S_TOKEN='${var.k3s_token}'
+
+      # Update and install prerequisites in rescue environment
+      apt-get update
+      DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates jq xfsprogs parted
+
+      # Install Nix (daemon)
+      curl -L https://nixos.org/nix/install | bash -s -- --daemon
+
+      # Enable flakes
+      mkdir -p /etc/nix
+      cat <<NIXCONF > /etc/nix/nix.conf
+      experimental-features = nix-command flakes
+      NIXCONF
+
+      # Source nix profile (bash)
+      source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+
+      # Run disko to partition & format /dev/sda based on your flake spec
+      nix run github:nix-community/disko -- --mode disko /tmp/nixos/disko.nix
+
+      # Install NixOS
+      nixos-install --flake /tmp/nixos#prod-master --no-root-password
+
+      # Reboot into newly installed system
+      reboot
+    EOF
+
+    destination = "/tmp/bootstrap.sh"
+    connection {
+      type        = "ssh"
+      user        = "root"
+      host        = hcloud_server.master.ipv4_address
+      private_key = var.ssh_private_key
+      timeout     = "2m"
+    }
+  }
+
+  provisioner "remote-exec" {
+    connection {
+      type        = "ssh"
+      user        = "root"
+      host        = hcloud_server.master.ipv4_address
+      private_key = var.ssh_private_key
+      timeout     = "5m"
+    }
+    inline = [
+      "chmod +x /tmp/bootstrap.sh",
+      "/bin/bash /tmp/bootstrap.sh"
+    ]
+  }
 }
