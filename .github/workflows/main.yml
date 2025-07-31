@@ -83,6 +83,12 @@ jobs:
           reboot
           EOF
 
+          # Disable rescue mode before rebooting
+          hcloud server disable-rescue prod-master
+
+          # Then reboot the server
+          sshpass -p "$RESCUE_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@$MASTER_IP reboot
+
       - name: Full Terraform apply (bootstrap NixOS)
         env:
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
