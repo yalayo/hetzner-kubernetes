@@ -11,6 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Install hcloud CLI
+        run: |
+          set -eux
+          # Download latest hcloud CLI release for Linux amd64
+          curl -fsSL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz -o hcloud.tar.gz
+          tar -xzf hcloud.tar.gz
+          sudo mv hcloud /usr/local/bin/
+          rm -f hcloud.tar.gz
+          hcloud version
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
