@@ -52,6 +52,12 @@ resource "hcloud_server" "master" {
       # Install Nix
       curl -L https://nixos.org/nix/install | bash -s -- --daemon
 
+      # Enable experimental features (nix-command + flakes)
+      mkdir -p /etc/nix
+      cat <<EOF > /etc/nix/nix.conf
+      experimental-features = nix-command flakes
+      EOF
+
       # Source the profile (bash is used so 'source' works)
       # shellcheck source=/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
       source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
