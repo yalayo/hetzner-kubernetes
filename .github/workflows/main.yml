@@ -46,7 +46,6 @@ jobs:
 
             # Save it to the GitHub Actions environment
             echo "MASTER_IP=$MASTER_IP" >> $GITHUB_ENV
-            echo "Captured MASTER_IP: $MASTER_IP
 
       - name: Wait for rescue SSH and inject public key
         env:
