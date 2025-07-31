@@ -31,26 +31,45 @@ resource "hcloud_server" "master" {
     destination = "/mnt/nixos"
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      # Export the token without using the unsupported environment block
-      "export K3S_TOKEN='${var.k3s_token}'",
+  provisioner "file" {
+    content     = <<-EOF
+      #!/bin/bash
+      set -euxo pipefail
 
+      # Export the token early
+      export K3S_TOKEN='${var.k3s_token}'
 
       # Fail early if not set
-      "if [ -z \"$K3S_TOKEN\" ]; then echo \"K3S_TOKEN missing\"; exit 1; fi",
+      if [ -z "$K3S_TOKEN" ]; then
+        echo "K3S_TOKEN missing"
+        exit 1
+      fi
+
+      # Install Nix non-interactively
+      apt-get update
+      DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates
 
       # Install Nix
-      "apt-get update",
-      "apt-get install -y curl ca-certificates",
-      "curl -L https://nixos.org/nix/install | bash -s -- --daemon",
-      "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh",
+      curl -L https://nixos.org/nix/install | bash -s -- --daemon
 
-      # (Export it for downstream tools if needed)
-      "export K3S_TOKEN",
+      # Source the profile (bash is used so 'source' works)
+      # shellcheck source=/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+      source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-      "nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix",
-      "nixos-install --flake /mnt/nixos#prod-master --no-root-password"
+      # Preserve token for downstream tools
+      export K3S_TOKEN
+
+      # Run the disko and install
+      nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix
+      nixos-install --flake /mnt/nixos#prod-master --no-root-password
+    EOF
+    destination = "/tmp/bootstrap.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/bootstrap.sh",
+      "/bin/bash -e /tmp/bootstrap.sh"
     ]
   }
 
