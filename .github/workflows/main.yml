@@ -14,22 +14,29 @@ jobs:
       - name: Install hcloud CLI
         run: |
           set -eux
-          # Download latest hcloud CLI release for Linux amd64
           curl -fsSL https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz -o hcloud.tar.gz
           tar -xzf hcloud.tar.gz
+          chmod +x hcloud
           sudo mv hcloud /usr/local/bin/
           rm -f hcloud.tar.gz
-          hcloud version
+          /usr/local/bin/hcloud version
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
       - name: Deploy with Terraform
         env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_kEY }}
           TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
         run: |
+            set -eux
+            # ensure hcloud is on PATH and executable
+            export PATH=$PATH:/usr/local/bin
+            which hcloud
+            hcloud version
+
             cd ./terraform
             terraform init
             terraform apply -auto-approve
