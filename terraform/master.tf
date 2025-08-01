@@ -32,7 +32,7 @@ resource "hcloud_server" "master" {
   }
 
   provisioner "file" {
-    content     = <<-EOF
+    content = <<-EOT
       #!/bin/bash
       set -euxo pipefail
 
@@ -55,22 +55,17 @@ resource "hcloud_server" "master" {
       # Ensure DNS works inside chroot
       cp /etc/resolv.conf /mnt/nixos/etc/resolv.conf
 
-      # Enter chroot and perform NixOS installation via flake
-      chroot /mnt/nixos /usr/bin/env K3S_TOKEN="$K3S_TOKEN" /bin/bash -eux <<'EOF'
-      # Install Nix (single-user) so we can use flakes and nixos-install
-      curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
-      # Load Nix profile
-      . /root/.nix-profile/etc/profile.d/nix.sh
+      chroot /mnt/nixos /usr/bin/env K3S_TOKEN="$K3S_TOKEN" /bin/bash -eux <<'CHROOT'
+        curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+        . /root/.nix-profile/etc/profile.d/nix.sh
 
-      # Enable flakes inside the chroot
-      mkdir -p /etc/nix
-      cat <<NIXCONF > /etc/nix/nix.conf
-      experimental-features = nix-command flakes
-      NIXCONF
+        mkdir -p /etc/nix
+        cat <<NIXCONF > /etc/nix/nix.conf
+        experimental-features = nix-command flakes
+        NIXCONF
 
-      # Run installation from flake; adjust the flake name if different
-      nixos-install --flake /mnt/nixos#prod-master --no-root-password
-      EOF
+        nixos-install --flake /mnt/nixos#prod-master --no-root-password
+      CHROOT
 
       # Cleanup: unmount the binds (best-effort)
       for fs in run dev sys proc; do
@@ -78,9 +73,9 @@ resource "hcloud_server" "master" {
       done
 
       reboot
-    EOF
-    destination = "/tmp/bootstrap.sh"
-  }
+    EOT
+  destination = "/tmp/bootstrap.sh"
+}
 
   provisioner "remote-exec" {
     inline = [
