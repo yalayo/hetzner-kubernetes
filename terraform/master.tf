@@ -56,7 +56,7 @@ resource "hcloud_server" "master" {
       cp /etc/resolv.conf /mnt/nixos/etc/resolv.conf
 
       # Enter chroot and perform NixOS installation via flake
-      chroot /mnt/nixos /bin/bash -eux <<'EOF'
+      chroot /mnt/nixos /usr/bin/env K3S_TOKEN="$K3S_TOKEN" /bin/bash -eux <<'EOF'
       # Install Nix (single-user) so we can use flakes and nixos-install
       curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
       # Load Nix profile
