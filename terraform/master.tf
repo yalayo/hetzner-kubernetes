@@ -8,6 +8,12 @@ variable "k3s_token" {
   sensitive = true
 }
 
+locals {
+  configuration_b64 = base64encode(file("${path.module}/nixos/configuration.nix"))
+  disko_b64 = base64encode(file("${path.module}/nixos/disko.nix"))
+  flake_b64 = base64encode(file("${path.module}/nixos/flake.nix"))
+}
+
 ## VM
 resource "hcloud_server" "master" { 
   name        = "prod-master"
@@ -45,16 +51,6 @@ resource "hcloud_server" "master" {
     packages: [git curl ca-certificates jq xfsprogs parted]
 
     write_files:
-      - path: /root/fetch_nixos.sh
-        permissions: '0755'
-        content: |
-          #!/bin/bash
-          set -euxo pipefail
-
-          # Clone your nixos flake (adjust URL as needed)
-          rm -rf /tmp/nixos
-          git clone --depth=1 https://github.com/yourorg/nixos.git /tmp/nixos
-
       - path: /root/bootstrap.sh
         permissions: '0755'
         content: |
@@ -87,7 +83,21 @@ resource "hcloud_server" "master" {
           reboot
 
     runcmd:
-      - /bin/bash /root/fetch_nixos.sh
+      - |
+        mkdir -p /tmp/nixos
+        cat <<'EOF' | base64 -d > /tmp/nixos/configuration.nix
+        ${local.configuration_b64}
+        EOF
+
+        mkdir -p /tmp/nixos
+        cat <<'EOF' | base64 -d > /tmp/nixos/disko.nix
+        ${local.disko_b64}
+        EOF
+
+        mkdir -p /tmp/nixos
+        cat <<'EOF' | base64 -d > /tmp/nixos/flake.nix
+        ${local.flake_b64}
+        EOF
       - /bin/bash /root/bootstrap.sh
   EOF
 
