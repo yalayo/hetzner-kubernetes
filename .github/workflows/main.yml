@@ -43,7 +43,7 @@ jobs:
           # Optional: tighten SSH client usage
           cat <<'EOF' >> ~/.ssh/config
           Host prod-master
-            HostName ${{ env.MASTER_IP }}
+            HostName $MASTER_IP
             User root
             IdentityFile ~/.ssh/id_nixos_anywhere
             IdentitiesOnly yes
@@ -52,7 +52,7 @@ jobs:
           chmod 600 ~/.ssh/config
 
           # (Optional but safer) populate known_hosts to avoid initial prompt
-          ssh-keyscan -H "${{ env.MASTER_IP }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H $MASTER_IP >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
       - name: Install NixOS remotely
