@@ -47,20 +47,36 @@ resource "hcloud_server" "master" {
       apt-get update
       DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates
 
-      # Install Nix
-      curl -L https://nixos.org/nix/install | bash -s -- --daemon
+      # Prepare chroot environment: bind-mount pseudo-filesystems
+      for fs in proc sys dev run; do
+        mount --bind "/$fs" "/mnt/nixos/$fs"
+      done
 
-      # Enable nix-command and flakes
+      # Ensure DNS works inside chroot
+      cp /etc/resolv.conf /mnt/nixos/etc/resolv.conf
+
+      # Enter chroot and perform NixOS installation via flake
+      chroot /mnt/nixos /bin/bash -eux <<'EOF'
+      # Install Nix (single-user) so we can use flakes and nixos-install
+      curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+      # Load Nix profile
+      . /root/.nix-profile/etc/profile.d/nix.sh
+
+      # Enable flakes inside the chroot
       mkdir -p /etc/nix
       cat <<NIXCONF > /etc/nix/nix.conf
       experimental-features = nix-command flakes
       NIXCONF
 
-      # Load Nix profile (requires bash)
-      #source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+      # Run installation from flake; adjust the flake name if different
+      nixos-install --flake /mnt/nixos#prod-master --no-root-password
+      EOF
 
-      #nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix
-      #nixos-install --flake /mnt/nixos#prod-master --no-root-password
+      # Cleanup: unmount the binds (best-effort)
+      for fs in run dev sys proc; do
+        umount -l "/mnt/nixos/$fs" || true
+      done
+
       reboot
     EOF
     destination = "/tmp/bootstrap.sh"
