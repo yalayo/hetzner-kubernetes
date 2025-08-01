@@ -49,8 +49,12 @@ resource "hcloud_server" "master" {
 
       # Install Nix (needed to run disko)
       curl -L https://nixos.org/nix/install | bash -s -- --daemon
-      # Source nix profile so `nix` is in PATH
-      . /home/root/.nix-profile/etc/profile.d/nix.sh  # adjust if installing as root; install script drops profile in /root/.nix-profile if root
+      # load nix into current session
+      if [ -f /etc/profile.d/nix.sh ]; then
+        . /etc/profile.d/nix.sh
+      elif [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+        . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+      fi
 
       # Run disko to set up the target disk and mount at /mnt/nixos
       # Assumes you uploaded a disko.nix into /mnt/nixos/disko.nix that describes the desired layout.
@@ -70,7 +74,12 @@ resource "hcloud_server" "master" {
 
       chroot /mnt/nixos /usr/bin/env K3S_TOKEN="$K3S_TOKEN" /bin/bash -eux <<'CHROOT'
         curl -L https://nixos.org/nix/install | bash -s -- --daemon
-        . /root/.nix-profile/etc/profile.d/nix.sh
+        # load nix into current session
+        if [ -f /etc/profile.d/nix.sh ]; then
+          . /etc/profile.d/nix.sh
+        elif [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+          . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+        fi
 
         mkdir -p /etc/nix
         cat <<NIXCONF > /etc/nix/nix.conf
