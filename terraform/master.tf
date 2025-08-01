@@ -32,13 +32,15 @@ resource "hcloud_server" "master" {
   }
 
   provisioner "remote-exec" {
+    interpreter = ["bash", "-c"]
     inline = [
       # Install Nix
       "set -e",
       "apt-get update",
       "apt-get install -y curl ca-certificates",
       "curl -L https://nixos.org/nix/install | bash -s -- --daemon",
-      "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh && nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix",
+      "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh",
+      "nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix",
       "nixos-install --flake /mnt/nixos#prod-master --no-root-password"
     ]
   }
