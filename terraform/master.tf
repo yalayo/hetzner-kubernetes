@@ -74,6 +74,18 @@ resource "hcloud_server" "master" {
 
           MARKER_FILE="/root/.disko-needs-reboot"
 
+          if ! command -v nix &> /dev/null; then
+            echo "Nix not found, installing..."
+            curl -L https://nixos.org/nix/install | sh -s -- --daemon
+            source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+          fi
+
+          # Enable flakes
+          mkdir -p /etc/nix
+          cat <<NIXCONF > /etc/nix/nix.conf
+          experimental-features = nix-command flakes
+          NIXCONF
+
           if [ ! -f "$MARKER_FILE" ]; then
             # === Stage 1: Partitioning ===
             echo "Stage 1: Running disko to partition disk..."
@@ -117,19 +129,6 @@ resource "hcloud_server" "master" {
           base64 -d /root/configuration.nix.b64 > /tmp/nixos/configuration.nix
           base64 -d /root/disko.nix.b64 > /tmp/nixos/disko.nix
           base64 -d /root/flake.nix.b64 > /tmp/nixos/flake.nix
-
-          # Install Nix (daemon) non-interactively
-          curl -L https://nixos.org/nix/install | bash -s -- --daemon
-
-          # Enable flakes
-          mkdir -p /etc/nix
-          cat <<NIXCONF > /etc/nix/nix.conf
-          experimental-features = nix-command flakes
-          NIXCONF
-
-          # Source nix profile (bash)
-          # shellcheck source=/dev/null
-          source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
           # Install NixOS from the flake; adjust the selector if needed
           nixos-install --flake /tmp/nixos#prod-master --no-root-password
