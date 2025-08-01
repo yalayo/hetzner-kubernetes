@@ -47,6 +47,19 @@ resource "hcloud_server" "master" {
       apt-get update
       DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates
 
+      # Install Nix (needed to run disko)
+      curl -L https://nixos.org/nix/install | bash -s -- --no-daemon
+      # Source nix profile so `nix` is in PATH
+      . /home/root/.nix-profile/etc/profile.d/nix.sh  # adjust if installing as root; install script drops profile in /root/.nix-profile if root
+
+      # Run disko to set up the target disk and mount at /mnt/nixos
+      # Assumes you uploaded a disko.nix into /mnt/nixos/disko.nix that describes the desired layout.
+      nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix
+
+      # At this point /mnt/nixos should be the mounted target root
+      # Ensure mount points for chroot
+      mkdir -p /mnt/nixos/{proc,sys,dev,run,etc}
+
       # Prepare chroot environment: bind-mount pseudo-filesystems
       for fs in proc sys dev run; do
         mount --bind "/$fs" "/mnt/nixos/$fs"
@@ -64,7 +77,7 @@ resource "hcloud_server" "master" {
         experimental-features = nix-command flakes
         NIXCONF
 
-        nixos-install --flake /mnt/nixos#prod-master --no-root-password
+        nixos-install --flake /#prod-master --no-root-password
       CHROOT
 
       # Cleanup: unmount the binds (best-effort)
