@@ -60,6 +60,7 @@ jobs:
           set -euo pipefail
           # Use the host alias so the private key from config is used
           nix run github:nix-community/nixos-anywhere -- \
-            --flake /terraform/nixos#prod-master \
+            --flake ./terraform/nixos#prod-master \
             --no-root-password \
-            --target-host prod-master
+            --target-host prod-master \
+            --system aarch64-linux
