@@ -72,6 +72,9 @@ resource "hcloud_server" "master" {
           #!/bin/bash
           set -euxo pipefail
 
+          export HOME=/root
+          export K3S_TOKEN='${var.k3s_token}'
+
           MARKER_FILE="/root/.disko-needs-reboot"
 
           if ! command -v nix &> /dev/null; then
@@ -120,9 +123,6 @@ resource "hcloud_server" "master" {
           mount /dev/disk/by-partlabel/disk-main-root /mnt
           mkdir -p /mnt/boot
           mount /dev/disk/by-partlabel/disk-main-boot /mnt/boot
-
-          export HOME=/root
-          export K3S_TOKEN='${var.k3s_token}'
 
           # Reconstruct nix files
           mkdir -p /tmp/nixos
