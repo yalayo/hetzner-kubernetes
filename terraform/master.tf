@@ -35,3 +35,7 @@ resource "hcloud_server" "master" {
     hcloud_network_subnet.network-subnet
   ]
 }
+
+output "master_ip" {
+  value = hcloud_server.master.ipv4_address
+}
