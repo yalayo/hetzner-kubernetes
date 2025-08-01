@@ -89,6 +89,12 @@ resource "hcloud_server" "master" {
           experimental-features = nix-command flakes
           NIXCONF
 
+          # Reconstruct nix files
+          mkdir -p /tmp/nixos
+          base64 -d /root/configuration.nix.b64 > /tmp/nixos/configuration.nix
+          base64 -d /root/disko.nix.b64 > /tmp/nixos/disko.nix
+          base64 -d /root/flake.nix.b64 > /tmp/nixos/flake.nix
+
           if [ ! -f "$MARKER_FILE" ]; then
             # === Stage 1: Partitioning ===
             echo "Stage 1: Running disko to partition disk..."
@@ -123,12 +129,6 @@ resource "hcloud_server" "master" {
           mount /dev/disk/by-partlabel/disk-main-root /mnt
           mkdir -p /mnt/boot
           mount /dev/disk/by-partlabel/disk-main-boot /mnt/boot
-
-          # Reconstruct nix files
-          mkdir -p /tmp/nixos
-          base64 -d /root/configuration.nix.b64 > /tmp/nixos/configuration.nix
-          base64 -d /root/disko.nix.b64 > /tmp/nixos/disko.nix
-          base64 -d /root/flake.nix.b64 > /tmp/nixos/flake.nix
 
           # Install NixOS from the flake; adjust the selector if needed
           nixos-install --flake /tmp/nixos#prod-master --no-root-password
