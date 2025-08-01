@@ -8,12 +8,6 @@ variable "k3s_token" {
   sensitive = true
 }
 
-locals {
-  configuration_b64 = base64encode(file("${path.module}/nixos/configuration.nix"))
-  disko_b64 = base64encode(file("${path.module}/nixos/disko.nix"))
-  flake_b64 = base64encode(file("${path.module}/nixos/flake.nix"))
-}
-
 ## VM
 resource "hcloud_server" "master" { 
   name        = "prod-master"
@@ -24,11 +18,35 @@ resource "hcloud_server" "master" {
   ssh_keys    = [data.hcloud_ssh_key.ssh_key.id] 
   firewall_ids = [hcloud_firewall.cluster.id]
 
+  user_data = <<-EOF
+    #!/bin/bash
+    sudo apt-get update
+    sudo apt-get -y install ca-certificates curl
+    sudo sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
+  EOF
+
   connection {
     type        = "ssh"
     user        = "root"
     private_key = var.ssh_private_key
     host        = self.ipv4_address
+  }
+
+  # Upload your NixOS configuration files
+  provisioner "file" {
+    source      = "nixos"
+    destination = "/mnt/nixos"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      # Install Nix
+      "apt-get update",
+      "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh",
+
+      "nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix",
+      "nixos-install --flake /mnt/nixos#prod-master --no-root-password"
+    ]
   }
 
   public_net {
@@ -43,118 +61,6 @@ resource "hcloud_server" "master" {
       "10.1.1.2"
     ]
   }
-
-  user_data = <<-EOF
-    #cloud-config
-    package_update: true
-    package_upgrade: false
-    packages: [git curl ca-certificates jq xfsprogs parted]
-
-    write_files:
-      - path: /root/configuration.nix.b64
-        permissions: '0644'
-        content: |
-          ${local.configuration_b64}
-
-      - path: /root/disko.nix.b64
-        permissions: '0644'
-        content: |
-          ${local.disko_b64}
-
-      - path: /root/flake.nix.b64
-        permissions: '0644'
-        content: |
-          ${local.flake_b64}
-
-      - path: /root/bootstrap.sh
-        permissions: '0755'
-        content: |
-          #!/bin/bash
-          set -euxo pipefail
-
-          export HOME=/root
-          export K3S_TOKEN='${var.k3s_token}'
-
-          MARKER_FILE="/root/.disko-needs-reboot"
-
-          if ! command -v nix &> /dev/null; then
-            echo "Nix not found, installing..."
-            curl -L https://nixos.org/nix/install | sh -s -- --daemon
-            source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-          fi
-
-          # Enable flakes
-          mkdir -p /etc/nix
-          cat <<NIXCONF > /etc/nix/nix.conf
-          experimental-features = nix-command flakes
-          NIXCONF
-
-          # Reconstruct nix files
-          mkdir -p /tmp/nixos
-          base64 -d /root/configuration.nix.b64 > /tmp/nixos/configuration.nix
-          base64 -d /root/disko.nix.b64 > /tmp/nixos/disko.nix
-          base64 -d /root/flake.nix.b64 > /tmp/nixos/flake.nix
-
-          if [ ! -f "$MARKER_FILE" ]; then
-            # === Stage 1: Partitioning ===
-            echo "Stage 1: Running disko to partition disk..."
-
-            # Run disko to write partition table
-            nix run github:nix-community/disko -- --mode disko /tmp/nixos/disko.nix
-
-            partprobe /dev/sda
-            udevadm trigger --subsystem-match=block
-            udevadm settle --timeout=10
-
-            # Wait for partition device nodes
-            for i in {1..10}; do
-              if [ -e /dev/disk/by-partlabel/disk-main-boot ]; then
-                break
-              fi
-              echo "Waiting for /dev/disk/by-partlabel/disk-main-boot to appear..."
-              sleep 2
-            done
-
-            if [ ! -e /dev/disk/by-partlabel/disk-main-boot ]; then
-              echo "Partition devices not found, rebooting to refresh kernel partition table..."
-              touch /root/.disko-needs-reboot
-              reboot
-              exit 0
-            fi
-
-            echo "Partition table updated and recognized by kernel."
-
-            # Fall through if kernel already sees partitions (rare without reboot)
-          fi
-
-          # === Stage 2: Format partitions and install NixOS ===
-          echo "Stage 2: Formatting partitions and installing NixOS..."
-
-          # Format partitions
-          mkfs.vfat -F 32 /dev/disk/by-partlabel/disk-main-boot
-          mkfs.ext4 /dev/disk/by-partlabel/disk-main-root
-
-          # Mount partitions for install
-          mount /dev/disk/by-partlabel/disk-main-root /mnt
-          mkdir -p /mnt/boot
-          mount /dev/disk/by-partlabel/disk-main-boot /mnt/boot
-
-          # Install NixOS from the flake; adjust the selector if needed
-          nixos-install --flake /tmp/nixos#prod-master --no-root-password
-
-          # Clean up
-          umount /mnt/boot
-          umount /mnt
-
-          # Remove reboot marker
-          rm -f "$MARKER_FILE"
-
-          # Reboot into the newly installed system
-          reboot
-
-    runcmd:
-      - /bin/bash /root/bootstrap.sh
-  EOF
 
   depends_on = [
     hcloud_network_subnet.network-subnet
