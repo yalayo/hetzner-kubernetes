@@ -18,13 +18,6 @@ resource "hcloud_server" "master" {
   ssh_keys    = [data.hcloud_ssh_key.ssh_key.id] 
   firewall_ids = [hcloud_firewall.cluster.id]
 
-  user_data = <<-EOF
-    #!/bin/bash
-    sudo apt-get update
-    sudo apt-get -y install ca-certificates curl
-    sudo sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
-  EOF
-
   connection {
     type        = "ssh"
     user        = "root"
@@ -42,6 +35,8 @@ resource "hcloud_server" "master" {
     inline = [
       # Install Nix
       "apt-get update",
+      "apt-get install -y curl ca-certificates",
+      "curl -L https://nixos.org/nix/install | bash -s -- --daemon",
       "source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh",
 
       "nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix",
