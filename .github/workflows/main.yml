@@ -41,7 +41,7 @@ jobs:
           chmod 600 ~/.ssh/id_nixos_anywhere
 
           # Optional: tighten SSH client usage
-          cat <<EOF >> ~/.ssh/config
+          cat <<EOF > ~/.ssh/config
           Host prod-master
             HostName $MASTER_IP
             User root
