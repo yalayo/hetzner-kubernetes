@@ -15,6 +15,7 @@ in {
     2379 # etcd client (HA embedded etcd)
     2380 # etcd peer (HA embedded etcd)
   ];
+  networking.firewall.enable = true;
   networking.firewall.allowedUDPPorts = [
     8472 # flannel overlay (multi-node)
   ];
