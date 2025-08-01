@@ -56,6 +56,11 @@ resource "hcloud_server" "master" {
         . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
       fi
 
+      mkdir -p /etc/nix
+      cat <<NIXCONF > /etc/nix/nix.conf
+      experimental-features = nix-command flakes
+      NIXCONF
+
       # Run disko to set up the target disk and mount at /mnt/nixos
       # Assumes you uploaded a disko.nix into /mnt/nixos/disko.nix that describes the desired layout.
       nix run github:nix-community/disko -- --mode disko /mnt/nixos/disko.nix
