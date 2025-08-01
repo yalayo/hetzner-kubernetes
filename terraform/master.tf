@@ -51,6 +51,21 @@ resource "hcloud_server" "master" {
     packages: [git curl ca-certificates jq xfsprogs parted]
 
     write_files:
+      - path: /root/configuration.nix.b64
+        permissions: '0644'
+        content: |
+          ${local.configuration_b64}
+
+      - path: /root/disko.nix.b64
+        permissions: '0644'
+        content: |
+          ${local.disko_b64}
+
+      - path: /root/flake.nix.b64
+        permissions: '0644'
+        content: |
+          ${local.flake_b64}
+
       - path: /root/bootstrap.sh
         permissions: '0755'
         content: |
@@ -59,6 +74,12 @@ resource "hcloud_server" "master" {
 
           export HOME=/root
           export K3S_TOKEN='${var.k3s_token}'
+
+          # Reconstruct nix files
+          mkdir -p /tmp/nixos
+          base64 -d /root/configuration.nix.b64 > /tmp/nixos/configuration.nix
+          base64 -d /root/disko.nix.b64 > /tmp/nixos/disko.nix
+          base64 -d /root/flake.nix.b64 > /tmp/nixos/flake.nix
 
           # Install Nix (daemon) non-interactively
           curl -L https://nixos.org/nix/install | bash -s -- --daemon
@@ -83,21 +104,6 @@ resource "hcloud_server" "master" {
           reboot
 
     runcmd:
-      - |
-        mkdir -p /tmp/nixos
-        cat <<'EOF' | base64 -d > /tmp/nixos/configuration.nix
-        ${local.configuration_b64}
-        EOF
-
-        mkdir -p /tmp/nixos
-        cat <<'EOF' | base64 -d > /tmp/nixos/disko.nix
-        ${local.disko_b64}
-        EOF
-
-        mkdir -p /tmp/nixos
-        cat <<'EOF' | base64 -d > /tmp/nixos/flake.nix
-        ${local.flake_b64}
-        EOF
       - /bin/bash /root/bootstrap.sh
   EOF
 
