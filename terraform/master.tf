@@ -38,88 +38,60 @@ resource "hcloud_server" "master" {
     ]
   }
 
+  user_data = <<-EOF
+    #cloud-config
+    package_update: true
+    package_upgrade: false
+    packages: [git curl ca-certificates jq xfsprogs parted]
+
+    write_files:
+      - path: /root/fetch_nixos.sh
+        permissions: '0755'
+        content: |
+          #!/bin/bash
+          set -euxo pipefail
+
+          # Clone your nixos flake (adjust URL as needed)
+          rm -rf /tmp/nixos
+          git clone --depth=1 https://github.com/yourorg/nixos.git /tmp/nixos
+
+      - path: /root/bootstrap.sh
+        permissions: '0755'
+        content: |
+          #!/bin/bash
+          set -euxo pipefail
+
+          # Export token from Terraform interpolation
+          export K3S_TOKEN='${var.k3s_token}'
+
+          # Install Nix (daemon) non-interactively
+          curl -L https://nixos.org/nix/install | bash -s -- --daemon
+
+          # Enable flakes
+          mkdir -p /etc/nix
+          cat <<NIXCONF > /etc/nix/nix.conf
+          experimental-features = nix-command flakes
+          NIXCONF
+
+          # Source nix profile (bash)
+          # shellcheck source=/dev/null
+          source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+
+          # Run disko to partition & format /dev/sda based on your flake spec
+          nix run github:nix-community/disko -- --mode disko /tmp/nixos/disko.nix
+
+          # Install NixOS from the flake; adjust the selector if needed
+          nixos-install --flake /tmp/nixos#prod-master --no-root-password
+
+          # Reboot into the newly installed system
+          reboot
+
+    runcmd:
+      - /bin/bash /root/fetch_nixos.sh
+      - /bin/bash /root/bootstrap.sh
+  EOF
+
   depends_on = [
     hcloud_network_subnet.network-subnet
   ]
-}
-
-# Bootstrap NixOS from rescue system
-resource "null_resource" "bootstrap_nixos" {
-  # Upload nixos directory into rescue
-  provisioner "file" {
-    source      = "nixos"
-    destination = "/tmp/nixos"
-    connection {
-      type        = "ssh"
-      user        = "root"
-      host        = hcloud_server.master.ipv4_address
-      private_key = var.ssh_private_key
-      timeout     = "2m"
-      # retry to cope with the fact it may take a bit to drop into rescue and SSH accept
-      bastion_host = null
-    }
-  }
-
-  # Upload and install bootstrap script
-  provisioner "file" {
-    content = <<-EOF
-      #!/bin/bash
-      set -euxo pipefail
-
-      # K3S_TOKEN is injected via Terraform interpolation
-      export K3S_TOKEN='${var.k3s_token}'
-
-      # Update and install prerequisites in rescue environment
-      apt-get update
-      DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates jq xfsprogs parted
-
-      # Install Nix (daemon)
-      curl -L https://nixos.org/nix/install | bash -s -- --daemon
-
-      # Enable flakes
-      mkdir -p /etc/nix
-      cat <<NIXCONF > /etc/nix/nix.conf
-      experimental-features = nix-command flakes
-      NIXCONF
-
-      # Source nix profile (bash)
-      source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-
-      # Run disko to partition & format /dev/sda based on your flake spec
-      nix run github:nix-community/disko -- --mode disko /tmp/nixos/disko.nix
-
-      # Install NixOS
-      nixos-install --flake /tmp/nixos#prod-master --no-root-password
-
-      # Reboot into newly installed system
-      reboot
-    EOF
-
-    destination = "/tmp/bootstrap.sh"
-    connection {
-      type        = "ssh"
-      user        = "root"
-      host        = hcloud_server.master.ipv4_address
-      private_key = var.ssh_private_key
-      timeout     = "2m"
-    }
-  }
-
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      user        = "root"
-      host        = hcloud_server.master.ipv4_address
-      private_key = var.ssh_private_key
-      timeout     = "5m"
-    }
-    inline = [
-      "chmod +x /tmp/bootstrap.sh",
-      "/bin/bash /tmp/bootstrap.sh"
-    ]
-  }
-}
-
-output "master_ip" {
-  value = hcloud_server.master.ipv4_address
 }
