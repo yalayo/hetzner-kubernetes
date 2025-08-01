@@ -61,7 +61,7 @@ resource "hcloud_server" "master" {
           #!/bin/bash
           set -euxo pipefail
 
-          # Export token from Terraform interpolation
+          export HOME=/root
           export K3S_TOKEN='${var.k3s_token}'
 
           # Install Nix (daemon) non-interactively
