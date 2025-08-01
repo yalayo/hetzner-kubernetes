@@ -48,7 +48,7 @@ resource "hcloud_server" "master" {
       DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates
 
       # Install Nix (needed to run disko)
-      curl -L https://nixos.org/nix/install | bash -s -- --no-daemon
+      curl -L https://nixos.org/nix/install | bash -s -- --daemon
       # Source nix profile so `nix` is in PATH
       . /home/root/.nix-profile/etc/profile.d/nix.sh  # adjust if installing as root; install script drops profile in /root/.nix-profile if root
 
@@ -69,7 +69,7 @@ resource "hcloud_server" "master" {
       cp /etc/resolv.conf /mnt/nixos/etc/resolv.conf
 
       chroot /mnt/nixos /usr/bin/env K3S_TOKEN="$K3S_TOKEN" /bin/bash -eux <<'CHROOT'
-        curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+        curl -L https://nixos.org/nix/install | bash -s -- --daemon
         . /root/.nix-profile/etc/profile.d/nix.sh
 
         mkdir -p /etc/nix
