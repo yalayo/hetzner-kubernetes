@@ -72,6 +72,43 @@ resource "hcloud_server" "master" {
           #!/bin/bash
           set -euxo pipefail
 
+          MARKER_FILE="/root/.disko-needs-reboot"
+
+          if [ ! -f "$MARKER_FILE" ]; then
+            # === Stage 1: Partitioning ===
+            echo "Stage 1: Running disko to partition disk..."
+
+            # Run disko to write partition table
+            nix run github:nix-community/disko -- --mode disko /tmp/nixos/disko.nix
+
+            # Notify kernel of partition changes
+            partprobe /dev/sda || true
+
+            # Check if kernel has adopted new partition table
+            if ! lsblk -no PARTLABEL /dev/sda1 >/dev/null 2>&1; then
+              echo "Kernel not using new partition table yet. Scheduling reboot..."
+              touch "$MARKER_FILE"
+              reboot
+              exit 0
+            fi
+
+            echo "Partition table updated and recognized by kernel."
+
+            # Fall through if kernel already sees partitions (rare without reboot)
+          fi
+
+          # === Stage 2: Format partitions and install NixOS ===
+          echo "Stage 2: Formatting partitions and installing NixOS..."
+
+          # Format partitions
+          mkfs.vfat -F 32 /dev/disk/by-partlabel/disk-main-boot
+          mkfs.ext4 /dev/disk/by-partlabel/disk-main-root
+
+          # Mount partitions for install
+          mount /dev/disk/by-partlabel/disk-main-root /mnt
+          mkdir -p /mnt/boot
+          mount /dev/disk/by-partlabel/disk-main-boot /mnt/boot
+
           export HOME=/root
           export K3S_TOKEN='${var.k3s_token}'
 
@@ -94,11 +131,15 @@ resource "hcloud_server" "master" {
           # shellcheck source=/dev/null
           source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-          # Run disko to partition & format /dev/sda based on your flake spec
-          nix run github:nix-community/disko -- --mode disko /tmp/nixos/disko.nix
-
           # Install NixOS from the flake; adjust the selector if needed
           nixos-install --flake /tmp/nixos#prod-master --no-root-password
+
+          # Clean up
+          umount /mnt/boot
+          umount /mnt
+
+          # Remove reboot marker
+          rm -f "$MARKER_FILE"
 
           # Reboot into the newly installed system
           reboot
