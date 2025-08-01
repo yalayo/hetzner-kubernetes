@@ -102,13 +102,22 @@ resource "hcloud_server" "master" {
             # Run disko to write partition table
             nix run github:nix-community/disko -- --mode disko /tmp/nixos/disko.nix
 
-            # Notify kernel of partition changes
-            partprobe /dev/sda || true
+            partprobe /dev/sda
+            udevadm trigger --subsystem-match=block
+            udevadm settle --timeout=10
 
-            # Check if kernel has adopted new partition table
-            if ! lsblk -no PARTLABEL /dev/sda1 >/dev/null 2>&1; then
-              echo "Kernel not using new partition table yet. Scheduling reboot..."
-              touch "$MARKER_FILE"
+            # Wait for partition device nodes
+            for i in {1..10}; do
+              if [ -e /dev/disk/by-partlabel/disk-main-boot ]; then
+                break
+              fi
+              echo "Waiting for /dev/disk/by-partlabel/disk-main-boot to appear..."
+              sleep 2
+            done
+
+            if [ ! -e /dev/disk/by-partlabel/disk-main-boot ]; then
+              echo "Partition devices not found, rebooting to refresh kernel partition table..."
+              touch /root/.disko-needs-reboot
               reboot
               exit 0
             fi
