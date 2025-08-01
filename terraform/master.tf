@@ -34,6 +34,7 @@ resource "hcloud_server" "master" {
   provisioner "remote-exec" {
     inline = [
       # Install Nix
+      "set -e",
       "apt-get update",
       "apt-get install -y curl ca-certificates",
       "curl -L https://nixos.org/nix/install | bash -s -- --daemon",
