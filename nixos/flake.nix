@@ -7,14 +7,28 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in {
-        nixosConfigurations.prod-master = pkgs.lib.nixosSystem {
-          inherit system;
-          modules = [ ./k3s-node.nix ]; # your configuration module
-          # you can also add additional configuration overlays/overrides here
-        };
-      });
+    let
+      systems = [ "aarch64-linux" ];
+      perSystem = flake-utils.lib.eachSystem systems (system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in {
+          nixosConfigurations = {
+            "prod-master" = pkgs.lib.nixosSystem {
+              inherit system;
+              modules = [ ./k3s-node.nix ];
+            };
+          };
+        });
+    in
+    {
+      inherit perSystem;
+
+      # Flattened alias so you can do `#prod-master`
+      nixosConfigurations = perSystem.nixosConfigurations;
+      "prod-master" = perSystem.nixosConfigurations."prod-master";
+
+      # Also keep the system namespace if you want the fully qualified one
+      aarch64-linux = perSystem;
+    }
 }
