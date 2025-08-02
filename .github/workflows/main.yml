@@ -70,9 +70,16 @@ jobs:
       - name: Seed k3s token on target
         run: |
           set -euo pipefail
-          echo "Writing k3s token to remote"
-          ssh -o StrictHostKeyChecking=no root@${MASTER_IP} \
-            "printf '%s' '${{ secrets.K3S_TOKEN }}' > /etc/k3s-token && chmod 600 /etc/k3s-token"
+          echo "Writing k3s token to remote using explicit identity file"
+          # Base64 encode locally so we can safely transmit arbitrary token content
+          TOKEN_B64=$(printf '%s' "${{ secrets.K3S_TOKEN }}" | base64 -w0)
+
+          ssh -i ~/.ssh/id_nixos_anywhere \
+              -o StrictHostKeyChecking=no \
+              -o IdentitiesOnly=yes \
+              -o UserKnownHostsFile=/dev/null \
+              root@${MASTER_IP} \
+              "printf '%s' '${TOKEN_B64}' | base64 -d > /etc/k3s-token && chmod 600 /etc/k3s-token"
 
       - name: Install NixOS remotely
         run: |
