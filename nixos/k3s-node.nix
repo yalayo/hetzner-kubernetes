@@ -2,7 +2,7 @@
 { config, pkgs, lib, ... }:
 
 let
-  k3sToken = if builtins.pathExists /etc/k3s-token
+  fileToken = if builtins.pathExists /etc/k3s-token
     then builtins.readFile /etc/k3s-token
     else "";
 in {
