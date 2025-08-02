@@ -41,10 +41,6 @@ in
 
   # k3s service
   services.k3s.enable = true;
-  services.k3s.extraArgs = lib.mkForce (builtins.filter (arg: arg != "") [
-    (if k3sToken != "" then "--token=${k3sToken}" else "")
-    "--disable=traefik"
-  ]);
   services.k3s.kubeconfigEnable = true;
 
   # Boot loader
