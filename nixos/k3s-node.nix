@@ -1,22 +1,15 @@
+# k3s-node.nix
 { config, pkgs, lib, ... }:
 
 let
-  # Read token if it exists, otherwise empty string
   k3sToken = if builtins.pathExists /etc/k3s-token
     then builtins.readFile /etc/k3s-token
     else "";
-in
-{
+in {
   system.stateVersion = "24.11";
 
-  # SSH server
   services.openssh.enable = true;
-  # Uncomment and replace with your key if needed
-  # users.users.root.openssh.authorizedKeys.keys = [
-  #   "ssh-ed25519 AAAA...your-public-key-here..."
-  # ];
 
-  # Packages
   environment.systemPackages = with pkgs; [ vim ];
 
   # Kernel modules
