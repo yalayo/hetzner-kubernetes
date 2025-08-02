@@ -85,6 +85,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "Deploying to host $MASTER_IP"
+          ssh -vvv prod-master
           
           # Use the host alias so the private key from config is used
           nix run github:nix-community/nixos-anywhere -- \
@@ -93,5 +94,5 @@ jobs:
           --option k3s.token ${{ secrets.K3S_TOKEN }} \
           --build-on remote \
           --no-root-password \
-          --target-host "root@$MASTER_IP" \
+          --target-host prod-master \
           -i ~/.ssh/id_nixos_anywhere
