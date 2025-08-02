@@ -53,7 +53,7 @@ jobs:
           chmod 600 ~/.ssh/id_nixos_anywhere
 
           # Optional: tighten SSH client usage
-          cat <<EOF > ~/.ssh/config
+          cat <<'EOF' > ~/.ssh/config
           Host prod-master
             HostName $MASTER_IP
             User root
@@ -85,7 +85,6 @@ jobs:
         run: |
           set -euo pipefail
           echo "Deploying to host $MASTER_IP"
-          ssh -vvv prod-master
           
           # Use the host alias so the private key from config is used
           nix run github:nix-community/nixos-anywhere -- \
