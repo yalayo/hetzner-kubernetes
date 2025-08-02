@@ -37,7 +37,7 @@ in {
     enable = true;
     role = "server";
     extraFlags = toString [ ];
-    token = lib.mkForce config.k3s.token;
+    token = lib.mkForce (if config.k3s.token != "" then config.k3s.token else fileToken);
     clusterInit = true;
   };
 
