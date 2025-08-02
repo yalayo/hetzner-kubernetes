@@ -67,14 +67,20 @@ jobs:
           ssh-keyscan -H "$MASTER_IP" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+      - name: Seed k3s token on target
+        run: |
+          set -euo pipefail
+          echo "Writing k3s token to remote"
+          ssh -o StrictHostKeyChecking=no root@${MASTER_IP} \
+            "printf '%s' '${{ secrets.K3S_TOKEN }}' > /etc/k3s-token && chmod 600 /etc/k3s-token"
+
       - name: Install NixOS remotely
         run: |
           set -euo pipefail
           echo "Deploying to host $MASTER_IP"
-
-          # Invoke nixos-anywhere, passing the k3s token via extra-flake-arg style
+          
+          # Use the host alias so the private key from config is used
           nix run github:nix-community/nixos-anywhere -- \
-            --flake ./nixos#prod-master \
+            --flake ./terraform/nixos#prod-master \
             --no-root-password \
-            --target-host "root@${MASTER_IP}" \
-            --override-input k3s-token "${{ secrets.K3S_TOKEN }}"
+            --target-host "root@$MASTER_IP"
