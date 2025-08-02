@@ -4,14 +4,34 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
     flake-utils.url = "github:numtide/flake-utils";
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "nixpkgs";
+    nixos-facter-modules.url = "github:numtide/nixos-facter-modules";
   };
 
-  outputs = { self, nixpkgs, ... }: {
-    nixosConfigurations = {
-      prod-master = nixpkgs.lib.nixosSystem {
-        system = "aarch64-linux";
-        modules = [ ./k3s-node.nix ];
-      };
+  outputs =
+    {
+        nixpkgs,
+        disko,
+        nixos-facter-modules,
+        ...
+    }:
+    {
+        nixosConfigurations.prod-master = nixpkgs.lib.nixosSystem {
+            system = "x86_64-linux";
+            modules = [
+                disko.nixosModules.disko
+                ./configuration.nix
+            ];
+        };
+        
+        nixosConfigurations.prod-master = nixpkgs.lib.nixosSystem {
+            system = "aarch64-linux";
+            modules = [
+                disko.nixosModules.disko
+                ./configuration.nix
+                ./k3s-node.nix
+            ];
+        };
     };
-  };
 }
