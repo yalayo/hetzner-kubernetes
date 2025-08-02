@@ -40,8 +40,13 @@ in
   networking.firewall.allowedTCPPorts = [ 6443 80 443 ];
 
   # k3s service
-  services.k3s.enable = true;
-  services.k3s.kubeconfigEnable = true;
+  services.k3s = {
+    enable = true;
+    role = "server";
+    extraFlags = toString [ ];
+    token = lib.mkForce (if tokenValue == "" then throw "K3S_TOKEN is not set" else tokenValue);
+    clusterInit = true;
+  };
 
   # Boot loader
   boot.loader.systemd-boot.enable = true;
@@ -52,5 +57,5 @@ in
   services.timesyncd.enable = true;
 
   # Hostname
-  networking.hostName = "k3s-node";
+  networking.hostName = "main-node";
 }
