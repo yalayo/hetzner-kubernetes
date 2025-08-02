@@ -44,7 +44,7 @@ in
     enable = true;
     role = "server";
     extraFlags = toString [ ];
-    token = lib.mkForce (if tokenValue == "" then throw "K3S_TOKEN is not set" else tokenValue);
+    token = lib.mkForce (if k3sToken == "" then throw "K3S_TOKEN is not set" else k3sToken);
     clusterInit = true;
   };
 
