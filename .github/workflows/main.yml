@@ -84,10 +84,14 @@ jobs:
         run: |
           cd ./nixos
           cat <<'EOF' > extra-keys.nix
-          { extraPublicKeys ? [] }: {
-            extraPublicKeys = [ "${{ secrets.SSH_PUBLIC_KEY }}" ];
+          { config, pkgs, lib, ... }:
+          {
+            users.users.root.openssh.authorizedKeys.keys = [
+              "${{ secrets.SSH_PUBLIC_KEY }}"
+            ];
           }
           EOF
+          ls -l
 
       - name: Install NixOS remotely
         run: |

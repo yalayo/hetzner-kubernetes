@@ -16,14 +16,18 @@
         nixos-facter-modules,
         ...
     }:
-    {
+    let
+      lib = nixpkgs.lib;
+      # Conditionally include the extra SSH key module if it was created by your workflow
+      extraKeyModule = lib.optional (builtins.pathExists ./extra-keys.nix) ./extra-keys.nix;
+    in {
         nixosConfigurations.prod-master = nixpkgs.lib.nixosSystem {
             system = "aarch64-linux";
             modules = [
                 disko.nixosModules.disko
                 ./configuration.nix
                 ./k3s-node.nix
-            ];
+            ] ++ extraKeyModule;
         };
     };
 }
