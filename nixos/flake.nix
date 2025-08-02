@@ -21,11 +21,9 @@
             };
           };
         });
-    in {
-      inherit perSystem;
 
-      # expose the expected shape so nixos-anywhere can introspect on x86_64-linux too
-      packages = {
+      # build the shape expected by nixos-anywhere for packages / legacyPackages
+      packagesAttr = {
         x86_64-linux = {
           nixosConfigurations = {
             prod-master = perSystem."x86_64-linux".nixosConfigurations.prod-master;
@@ -37,10 +35,13 @@
           };
         };
       };
+    in {
+      inherit perSystem;
 
-      legacyPackages = packages;
+      packages = packagesAttr;
+      legacyPackages = packagesAttr; # alias for compatibility
 
-      # top-level convenience alias: prod-master means the aarch64 target you intend to install
+      # top-level shorthand: prod-master refers to the aarch64 target
       nixosConfigurations = {
         prod-master = perSystem."aarch64-linux".nixosConfigurations.prod-master;
       };
