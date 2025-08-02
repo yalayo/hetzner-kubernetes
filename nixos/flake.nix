@@ -9,11 +9,10 @@
   outputs = { self, nixpkgs, flake-utils, ... }:
     let
       systems = [ "aarch64-linux" "x86_64-linux" ];
-      perSystemList = flake-utils.lib.eachSystem systems (system:
+      perSystem = flake-utils.lib.eachSystem systems (system:
         let
           pkgs = import nixpkgs { inherit system; };
         in {
-          system = system;
           nixosConfigurations = {
             prod-master = pkgs.lib.nixosSystem {
               inherit system;
@@ -21,10 +20,6 @@
             };
           };
         });
-      perSystem = builtins.listToAttrs (map (item: {
-        name = item.system;
-        value = item;
-      }) perSystemList);
     in {
       inherit perSystem;
 
