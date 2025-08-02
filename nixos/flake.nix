@@ -9,11 +9,11 @@
   outputs = { self, nixpkgs, flake-utils, ... }:
     let
       systems = [ "aarch64-linux" "x86_64-linux" ];
-
-      perSystem = flake-utils.lib.eachSystem' systems (system:
+      perSystemList = flake-utils.lib.eachSystem systems (system:
         let
           pkgs = import nixpkgs { inherit system; };
         in {
+          system = system;
           nixosConfigurations = {
             prod-master = pkgs.lib.nixosSystem {
               inherit system;
@@ -21,20 +21,13 @@
             };
           };
         });
-
-      # Build the packages / legacyPackages shape expected by nixos-anywhere
-      packagesAttr = builtins.mapAttrs (system: attrs: {
-        nixosConfigurations = {
-          prod-master = attrs.nixosConfigurations.prod-master;
-        };
-      }) perSystem;
+      perSystem = builtins.listToAttrs (map (item: {
+        name = item.system;
+        value = item;
+      }) perSystemList);
     in {
       inherit perSystem;
 
-      packages = packagesAttr;
-      legacyPackages = packagesAttr;
-
-      # Top-level alias for the real target
       nixosConfigurations = {
         prod-master = perSystem."aarch64-linux".nixosConfigurations.prod-master;
       };
