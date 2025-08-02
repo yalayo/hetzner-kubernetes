@@ -1,35 +1,32 @@
 { config, pkgs, lib, modulesPath, ... }:
 
 {
-  options.k3s.token = lib.mkOption {
-    type = lib.types.str;
-    description = "K3S cluster token";
+  imports = [
+    "${modulesPath}/installer/scan/not-detected.nix"
+    "${modulesPath}/profiles/qemu-guest.nix"
+    ./disk-config.nix
+    ./k3s-options.nix
+  ];
+
+  boot.loader.grub = {
+    efiSupport = true;
+    efiInstallAsRemovable = true;
   };
 
-  config = {
-    imports = [
-      "${modulesPath}/installer/scan/not-detected.nix"
-      "${modulesPath}/profiles/qemu-guest.nix"
-      ./disk-config.nix
-    ];
+  services.openssh.enable = true;
 
-    boot.loader.grub = {
-      efiSupport = true;
-      efiInstallAsRemovable = true;
-    };
+  environment.systemPackages = with pkgs; [
+    curl
+    gitMinimal
+  ];
 
-    services.openssh.enable = true;
+  users.users.root.openssh.authorizedKeys.keys =
+    [
+      "# CHANGE"
+    ] ++ (config.extraPublicKeys or []);
 
-    environment.systemPackages = with pkgs; [
-      curl
-      gitMinimal
-    ];
+  # Now you can set the token elsewhere, e.g. via an overlay or another imported file:
+  # k3s.token = "your-secret-token";
 
-    users.users.root.openssh.authorizedKeys.keys =
-      [
-        "# CHANGE"
-      ] ++ (config.extraPublicKeys or []);  # note: this `config` here is the module’s merged config; it works.
-
-    system.stateVersion = "24.11";
-  };
+  system.stateVersion = "24.11";
 }
