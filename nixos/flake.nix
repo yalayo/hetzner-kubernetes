@@ -8,8 +8,7 @@
 
   outputs = { self, nixpkgs, flake-utils, ... }:
     let
-      systems = [ "aarch64-linux" ];
-      perSystem = flake-utils.lib.eachSystem systems (system:
+      perSystem = flake-utils.lib.eachSystem [ "aarch64-linux" ] (system:
         let
           pkgs = import nixpkgs { inherit system; };
         in {
@@ -20,15 +19,10 @@
             };
           };
         });
-    in
-    {
+    in {
       inherit perSystem;
 
-      # Flattened alias so you can do `#prod-master`
-      nixosConfigurations = perSystem.nixosConfigurations;
+      # Flattened alias so you can reference #prod-master directly
       "prod-master" = perSystem.nixosConfigurations."prod-master";
-
-      # Also keep the system namespace if you want the fully qualified one
-      aarch64-linux = perSystem;
-    }
+    };
 }
