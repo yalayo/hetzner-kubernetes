@@ -1,8 +1,11 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   # read token if you wrote it to /etc/k3s-token (populated via environment or file injection)
-  k3sToken = builtins.tryEval (builtins.readFile /etc/k3s-token).value // "";
+  k3sToken = if builtins.pathExists /etc/k3s-token
+  then builtins.readFile /etc/k3s-token
+  else "";
+
 in
 {
   system.stateVersion = "24.11";
