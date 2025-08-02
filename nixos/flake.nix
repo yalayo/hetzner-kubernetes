@@ -22,26 +22,19 @@
           };
         });
 
-      # build the shape expected by nixos-anywhere for packages / legacyPackages
-      packagesAttr = {
-        x86_64-linux = {
-          nixosConfigurations = {
-            prod-master = perSystem."x86_64-linux".nixosConfigurations.prod-master;
-          };
+      # Build the packages / legacyPackages shape expected by nixos-anywhere
+      packagesAttr = builtins.mapAttrs (system: attrs: {
+        nixosConfigurations = {
+          prod-master = attrs.nixosConfigurations.prod-master;
         };
-        aarch64-linux = {
-          nixosConfigurations = {
-            prod-master = perSystem."aarch64-linux".nixosConfigurations.prod-master;
-          };
-        };
-      };
+      }) perSystem;
     in {
       inherit perSystem;
 
       packages = packagesAttr;
-      legacyPackages = packagesAttr; # alias for compatibility
+      legacyPackages = packagesAttr;
 
-      # top-level shorthand: prod-master refers to the aarch64 target
+      # Top-level alias for the real target
       nixosConfigurations = {
         prod-master = perSystem."aarch64-linux".nixosConfigurations.prod-master;
       };
