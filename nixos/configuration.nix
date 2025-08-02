@@ -6,7 +6,7 @@
     "${modulesPath}/profiles/qemu-guest.nix"
     ./disk-config.nix
     ./k3s-options.nix
-    ./extra-keys.nix
+    #./extra-keys.nix
   ];
 
   boot.loader.grub = {
@@ -17,7 +17,7 @@
   services.openssh.enable = true;
   services.openssh.passwordAuthentication = false;
 
-  users.users.root.openssh.authorizedKeys.keys = extraPublicKeys;
+  #users.users.root.openssh.authorizedKeys.keys = extraPublicKeys;
 
   environment.systemPackages = with pkgs; [
     curl
