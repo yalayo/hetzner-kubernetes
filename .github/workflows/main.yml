@@ -89,7 +89,8 @@ jobs:
           # Use the host alias so the private key from config is used
           nix run github:nix-community/nixos-anywhere -- \
           --flake './nixos#prod-master' \
-          --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
+          --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \^
+          --option k3s.token "${K3S_TOKEN}" \
           --build-on remote \
           --no-root-password \
           --target-host "root@$MASTER_IP" \

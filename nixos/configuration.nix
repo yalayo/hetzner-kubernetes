@@ -29,5 +29,10 @@
     "# CHANGE"
   ] ++ (args.extraPublicKeys or []); # this is used for unit-testing this module and can be removed if not needed
 
+  options.k3s.token = lib.mkOption {
+    type = lib.types.str;
+    description = "K3S cluster token";
+  };
+
   system.stateVersion = "24.11";
 }
