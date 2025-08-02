@@ -23,6 +23,7 @@
                 disko.nixosModules.disko
                 ./configuration.nix
                 ./k3s-node.nix
+                ./extra-keys.nix
             ];
         };
     };

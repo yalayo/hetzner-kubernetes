@@ -14,19 +14,14 @@
   };
 
   services.openssh.enable = true;
+  services.openssh.passwordAuthentication = false;
+
+  users.users.root.openssh.authorizedKeys.keys = extraPublicKeys;
 
   environment.systemPackages = with pkgs; [
     curl
     gitMinimal
   ];
-
-  users.users.root.openssh.authorizedKeys.keys =
-    [
-      "# CHANGE"
-    ] ++ (config.extraPublicKeys or []);
-
-  # Now you can set the token elsewhere, e.g. via an overlay or another imported file:
-  # k3s.token = "your-secret-token";
 
   system.stateVersion = "24.11";
 }

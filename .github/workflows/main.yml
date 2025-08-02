@@ -80,6 +80,14 @@ jobs:
               -o UserKnownHostsFile=/dev/null \
               root@${MASTER_IP} \
               "printf '%s' '${TOKEN_B64}' | base64 -d > /etc/k3s-token && chmod 600 /etc/k3s-token"
+      - name: Create override module with SSH public key
+        run: |
+          cd ./nixos
+          cat <<'EOF' > extra-keys.nix
+          { extraPublicKeys ? [] }: {
+            extraPublicKeys = [ "${{ secrets.SSH_PUBLIC_KEY }}" ];
+          }
+          EOF
 
       - name: Install NixOS remotely
         run: |
