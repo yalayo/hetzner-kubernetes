@@ -9,10 +9,22 @@ jobs:
   infrastructure:
     name: Create/Update sever
     runs-on: ubuntu-latest
+    env:
+      # fallback if needed; better to pass per-step when required
+      NIX_PATH: nixpkgs=channel:nixos-24.11
     steps:
       - uses: actions/checkout@v3
+      - name: Cache Nix store (optional speedup)
+        uses: actions/cache@v4
+        with:
+          path: /nix/store
+          key: nix-store-${{ runner.os }}-${{ github.sha }}
+          # note: caching /nix/store can be huge; adjust strategy if too large
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v10
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -59,9 +71,10 @@ jobs:
         run: |
           set -euo pipefail
           echo "Deploying to host $MASTER_IP"
-          # Use the host alias so the private key from config is used
+
+          # Invoke nixos-anywhere, passing the k3s token via extra-flake-arg style
           nix run github:nix-community/nixos-anywhere -- \
-            --flake ./terraform/nixos#prod-master \
+            --flake ./nixos#prod-master \
             --no-root-password \
-            --target-host "root@$MASTER_IP" \
-            --system aarch64-linux
+            --target-host "root@${MASTER_IP}" \
+            --override-input k3s-token "${{ secrets.K3S_TOKEN }}"
