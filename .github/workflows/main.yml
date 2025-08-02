@@ -90,4 +90,5 @@ jobs:
           nix run github:nix-community/nixos-anywhere -- \
             --flake ./terraform/nixos#prod-master \
             --no-root-password \
-            --target-host "root@$MASTER_IP"
+            --target-host "root@$MASTER_IP" \
+            -i ~/.ssh/id_nixos_anywhere
