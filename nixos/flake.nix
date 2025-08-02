@@ -18,14 +18,6 @@
     }:
     {
         nixosConfigurations.prod-master = nixpkgs.lib.nixosSystem {
-            system = "x86_64-linux";
-            modules = [
-                disko.nixosModules.disko
-                ./configuration.nix
-            ];
-        };
-        
-        nixosConfigurations.prod-master = nixpkgs.lib.nixosSystem {
             system = "aarch64-linux";
             modules = [
                 disko.nixosModules.disko
