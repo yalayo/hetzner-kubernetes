@@ -93,5 +93,5 @@ jobs:
           --option k3s.token ${{ secrets.K3S_TOKEN }} \
           --build-on remote \
           --no-root-password \
-          --target-host prod-master \
+          --target-host "root@$MASTER_IP" \
           -i ~/.ssh/id_nixos_anywhere
