@@ -10,7 +10,7 @@
     let
       systems = [ "aarch64-linux" "x86_64-linux" ];
 
-      perSystem = flake-utils.lib.eachSystem systems (system:
+      perSystem = flake-utils.lib.eachSystem' systems (system:
         let
           pkgs = import nixpkgs { inherit system; };
         in {
