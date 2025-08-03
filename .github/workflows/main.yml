@@ -52,6 +52,8 @@ jobs:
             echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
             echo "first_node_ip=$FIRST_NODE_IP" >> "$GITHUB_OUTPUT"
 
+            echo "$GITHUB_OUTPUT"
+
   deploy:
     name: Install NixOS/k3s on masters in parallel
     needs: infrastructure
