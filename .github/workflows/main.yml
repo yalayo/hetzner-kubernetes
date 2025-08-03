@@ -42,6 +42,24 @@ jobs:
             terraform init
             terraform apply -auto-approve
 
+            # Show all outputs (helps catch if the output name is wrong)
+            echo "Full terraform JSON outputs:"
+            terraform output -json | jq .
+
+            # Grab the specific one
+            NODES_IPS_JSON=$(terraform output -json nodes_ips)
+
+            # Debug visibility (delimited so you can spot stray characters)
+            echo "Raw nodes_ips JSON: <<<${NODES_IPS_JSON}>>>"
+
+            # Validate it's proper JSON; if not, dump hex and fail
+            if ! echo "$NODES_IPS_JSON" | jq . >/dev/null 2>&1; then
+              echo "ERROR: nodes_ips output is not valid JSON; aborting." >&2
+              printf 'Content hex dump:\n'
+              printf '%s' "$NODES_IPS_JSON" | hexdump -C
+              exit 1
+            fi
+
             # Expect terraform to output a JSON array of nodes IPs called nodes_ips
             NODES_IPS_JSON=$(terraform output -json nodes_ips)
             echo "NODES_IPS_JSON<<EOF" >> "$GITHUB_ENV"
