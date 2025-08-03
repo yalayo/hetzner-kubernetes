@@ -44,7 +44,7 @@ jobs:
             terraform apply -auto-approve
 
             # Get the JSON array of node IPs (raw JSON, e.g. ["1.2.3.4","..."])
-            NODES_IPS_JSON=$(terraform output -json nodes_ips)
+            NODES_IPS_JSON=$(terraform output -json nodes_ips | jq -c '.value')
             # First node IP, stripped of any trailing newline / CR
             FIRST_NODE_IP=$(terraform output -raw first_node_ip | tr -d '\r\n')
 
