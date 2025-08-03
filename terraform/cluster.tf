@@ -25,6 +25,7 @@ resource "hcloud_server" "node" {
 
   network {
     network_id = hcloud_network.network.id
+    ip = "10.1.1.${count.index+1}"
   }
 
   depends_on = [
