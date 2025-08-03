@@ -45,7 +45,8 @@ jobs:
 
             # Extract JSON array from mixed output
             NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | grep -oP '\[(?:"[^"]*",?)+\]' | head -n1)
-            FIRST_NODE_IP=$(terraform output -raw first_node_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}')
+            FIRST_NODE_IP=$(terraform output -raw first_node_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
+
             echo $FIRST_NODE_IP
             # Export as job outputs
             echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
