@@ -120,6 +120,6 @@ jobs:
             --option k3s.token ${{ secrets.K3S_TOKEN }} \
             --build-on remote \
             --no-root-password \
-            --target-host "root@${IP}" \
+            --target-host "root@$IP" \
             -i ~/.ssh/id_nixos_anywhere \
             --k3s-extra-args "${EXTRA_FLAGS}"
