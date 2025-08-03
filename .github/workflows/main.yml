@@ -45,7 +45,7 @@ jobs:
 
             # Capture only the array and first node, silencing any stderr noise
             raw_nodes=$(terraform output -json nodes_ips 2>/dev/null)
-            NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | jq -c '.' | tr -d '\r\n')
+            NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | tr -d '\r\n')
             FIRST_NODE_IP=$(terraform output -raw first_node_ip 2>/dev/null | tr -d '\r\n')
 
             # debug inspect (won’t include the [command]/... prefix in the variable)
