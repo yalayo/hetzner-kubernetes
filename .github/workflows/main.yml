@@ -9,25 +9,13 @@ jobs:
   infrastructure:
     name: Create/Update sever
     runs-on: ubuntu-latest
+
     outputs:
       nodes_ips: ${{ steps.terraform.outputs.nodes_ips }}
       first_node_ip: ${{ steps.terraform.outputs.first_node_ip }}
-    env:
-      # fallback if needed; better to pass per-step when required
-      NIX_PATH: nixpkgs=channel:nixos-24.11
+    
     steps:
       - uses: actions/checkout@v3
-      - name: Cache Nix store (optional speedup)
-        uses: actions/cache@v4
-        with:
-          path: /nix/store
-          key: nix-store-${{ runner.os }}-${{ github.sha }}
-          # note: caching /nix/store can be huge; adjust strategy if too large
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v10
-        with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -60,6 +48,9 @@ jobs:
     name: Install NixOS/k3s on masters in parallel
     needs: infrastructure
     runs-on: ubuntu-latest
+    env:
+      # fallback if needed; better to pass per-step when required
+      NIX_PATH: nixpkgs=channel:nixos-24.11
     strategy:
       matrix:
         node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips) }}
@@ -70,7 +61,17 @@ jobs:
           echo "RAW needs.infrastructure.outputs.nodes_ips: '${{ needs.infrastructure.outputs.nodes_ips }}'"
           # show invisible characters
           printf '%s' "${{ needs.infrastructure.outputs.nodes_ips }}" | od -c | head
-
+      - name: Cache Nix store (optional speedup)
+        uses: actions/cache@v4
+        with:
+          path: /nix/store
+          key: nix-store-${{ runner.os }}-${{ github.sha }}
+          # note: caching /nix/store can be huge; adjust strategy if too large
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v10
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
       - name: Determine if init
         run: |
           if [ "${{ matrix.node_ip }}" = "${{ needs.infrastructure.outputs.first_node_ip }}" ]; then
@@ -80,7 +81,6 @@ jobs:
           fi
           echo "is_init=$IS_INIT" >> "$GITHUB_OUTPUT"
         id: determine_init
-
       - name: Prepare SSH key and config
         run: |
           set -euo pipefail
@@ -101,7 +101,6 @@ jobs:
               -o UserKnownHostsFile=/dev/null \
               root@"${{ matrix.node_ip }}" \
               "printf '%s' '${TOKEN_B64}' | base64 -d > /etc/k3s-token && chmod 600 /etc/k3s-token"
-
       - name: Install NixOS remotely
         run: |
           set -euo pipefail
