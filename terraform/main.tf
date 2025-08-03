@@ -40,24 +40,6 @@ resource "hcloud_firewall" "cluster" {
       "${var.firewall_source_ip}/0" 
     ]
   }
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "80" 
-    source_ips = [
-      "${var.firewall_source_ip}/0" 
-    ]
-  }
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "443" 
-    source_ips = [
-      "${var.firewall_source_ip}/0" 
-    ]
-  }
 }
 
 ## Networking
