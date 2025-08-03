@@ -61,6 +61,11 @@ jobs:
         node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips) }}
     steps:
       - uses: actions/checkout@v3
+      - name: Debug received nodes_ips
+        run: |
+          echo "RAW needs.infrastructure.outputs.nodes_ips: '${{ needs.infrastructure.outputs.nodes_ips }}'"
+          # show invisible characters
+          printf '%s' "${{ needs.infrastructure.outputs.nodes_ips }}" | od -c | head
 
       - name: Determine if init
         run: |
