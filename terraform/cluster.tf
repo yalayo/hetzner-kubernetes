@@ -11,7 +11,7 @@ variable "k3s_token" {
 ## VM
 resource "hcloud_server" "node" { 
   count       = 3
-  name        = "prod-node-${count.index}"
+  name        = "prod-node-${count.index+1}"
   image       = "ubuntu-24.04"
   location    = "nbg1"
   server_type = "cax11" 
