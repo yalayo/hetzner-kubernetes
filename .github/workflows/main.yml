@@ -43,14 +43,13 @@ jobs:
             terraform init
             terraform apply -auto-approve
 
-            # Get the JSON array of node IPs (preserves array)
-            NODES_IPS_JSON=$(terraform output -raw nodes_ips | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
-            echo "NODES_IPS_JSON: $NODES_IPS_JSON"
+            # Get the JSON array of node IPs (raw JSON, e.g. ["1.2.3.4","..."])
+            NODES_IPS_JSON=$(terraform output -json nodes_ips)
+            # First node IP, stripped of any trailing newline / CR
+            FIRST_NODE_IP=$(terraform output -raw first_node_ip | tr -d '\r\n')
 
-            # First node IP from the array
-            FIRST_NODE_IP=$(terraform output -raw first_node_ip | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
-            FIRST_NODE_IP="${MASTER_IP//[$'\r\n']}"
-            echo "FIRST_NODE_IP: $FIRST_NODE_IP"
+            echo "DEBUG nodes_ips raw: $(terraform output -json nodes_ips)" >&2
+            echo "DEBUG first_node_ip raw: $(terraform output -raw first_node_ip)" >&2
 
             # Export as job outputs (new syntax)
             # Safely set outputs (JSON needs heredoc form)
@@ -74,6 +73,11 @@ jobs:
             is_init: false
     steps:
       - uses: actions/checkout@v3
+
+      - name: Dump matrix
+        run: |
+          echo "matrix.node_ip = ${{ matrix.node_ip }}"
+          echo "matrix.is_init = ${{ matrix.is_init }}"
 
       - name: Prepare SSH key and config
         run: |
