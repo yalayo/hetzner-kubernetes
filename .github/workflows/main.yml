@@ -48,9 +48,6 @@ jobs:
             # First node IP, stripped of any trailing newline / CR
             FIRST_NODE_IP=$(terraform output -raw first_node_ip | tr -d '\r\n')
 
-            echo "DEBUG nodes_ips raw: $(terraform output -json nodes_ips)" >&2
-            echo "DEBUG first_node_ip raw: $(terraform output -raw first_node_ip)" >&2
-
             # Export as job outputs (new syntax)
             # Safely set outputs (JSON needs heredoc form)
             echo "nodes_ips<<EOF" >> "$GITHUB_OUTPUT"
@@ -64,20 +61,19 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips)[0] }}
-            is_init: true
-          - node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips)[1] }}
-            is_init: false
-          - node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips)[2] }}
-            is_init: false
+        node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips) }}
     steps:
       - uses: actions/checkout@v3
 
-      - name: Dump matrix
+      - name: Determine if init
         run: |
-          echo "matrix.node_ip = ${{ matrix.node_ip }}"
-          echo "matrix.is_init = ${{ matrix.is_init }}"
+          if [ "${{ matrix.node_ip }}" = "${{ needs.infrastructure.outputs.first_node_ip }}" ]; then
+            IS_INIT=true
+          else
+            IS_INIT=false
+          fi
+          echo "is_init=$IS_INIT" >> "$GITHUB_OUTPUT"
+        id: determine_init
 
       - name: Prepare SSH key and config
         run: |
@@ -107,7 +103,7 @@ jobs:
           echo "Deploying to $IP (cluster-init=${{ matrix.is_init }})"
 
           EXTRA_FLAGS=""
-          if [ "${{ matrix.is_init }}" = "true" ]; then
+          if [ "${{ steps.determine_init.outputs.is_init }}" = "true" ]; then
             EXTRA_FLAGS="--cluster-init"
           else
             EXTRA_FLAGS="--server https://${{ needs.infrastructure.outputs.first_node_ip }}:6443"
