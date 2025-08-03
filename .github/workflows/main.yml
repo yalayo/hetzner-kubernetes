@@ -66,33 +66,6 @@ jobs:
             echo "EOF" >> "$GITHUB_OUTPUT"
             echo "first_node_ip=$FIRST_NODE_IP" >> "$GITHUB_OUTPUT"
 
-      - name: Prepare SSH key and config for nixos-anywhere
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          # Write private key to file
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_nixos_anywhere
-          chmod 600 ~/.ssh/id_nixos_anywhere
-
-          echo "Nodes JSON: $NODES_IPS_JSON"
-          for ip in $(echo "$NODES_IPS_JSON" | jq -r '.[]'); do
-            ssh-keyscan -H "$ip" >> ~/.ssh/known_hosts
-          done
-          chmod 600 ~/.ssh/known_hosts
-
-      - name: Seed k3s token on target
-        run: |
-          set -euo pipefail
-          echo "Writing k3s token to remote using explicit identity file"
-          # Base64 encode locally so we can safely transmit arbitrary token content
-          TOKEN_B64=$(printf '%s' "${{ secrets.K3S_TOKEN }}" | base64 -w0)
-
-          for ip in $(echo "$NODES_IPS_JSON" | jq -r '.[]'); do
-            echo "Writing k3s token to $ip"
-            ssh -o StrictHostKeyChecking=no root@"$ip" \
-              "printf '%s' '${TOKEN_B64}' | base64 -d > /etc/k3s-token && chmod 600 /etc/k3s-token"
-          done
-
   deploy:
     name: Install NixOS/k3s on masters in parallel
     needs: infrastructure
@@ -118,6 +91,17 @@ jobs:
 
           ssh-keyscan -H "${{ matrix.node_ip }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+
+          echo "Writing k3s token to remote using explicit identity file"
+          # Base64 encode locally so we can safely transmit arbitrary token content
+          TOKEN_B64=$(printf '%s' "${{ secrets.K3S_TOKEN }}" | base64 -w0)
+
+          ssh -i ~/.ssh/id_nixos_anywhere \
+              -o StrictHostKeyChecking=no \
+              -o IdentitiesOnly=yes \
+              -o UserKnownHostsFile=/dev/null \
+              root@"${{ matrix.node_ip }}" \
+              "printf '%s' '${TOKEN_B64}' | base64 -d > /etc/k3s-token && chmod 600 /etc/k3s-token"
 
       - name: Install NixOS remotely
         run: |
