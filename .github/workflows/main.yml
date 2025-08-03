@@ -44,7 +44,9 @@ jobs:
 
             # Expect terraform to output a JSON array of nodes IPs called nodes_ips
             NODES_IPS_JSON=$(terraform output -json nodes_ips)
-            echo "NODES_IPS_JSON=$NODES_IPS_JSON" >> $GITHUB_ENV
+            echo "NODES_IPS_JSON<<EOF" >> "$GITHUB_ENV"
+            echo "$NODES_IPS_JSON" >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
 
             # Extract first node separately for cluster-init and reference
             FIRST_NODE_IP=$(echo "$NODES_IPS_JSON" | jq -r '.[0]')
@@ -78,7 +80,7 @@ jobs:
           # Base64 encode locally so we can safely transmit arbitrary token content
           TOKEN_B64=$(printf '%s' "${{ secrets.K3S_TOKEN }}" | base64 -w0)
 
-          for ip in $(echo "$NODES_IPS" | jq -r '.[]'); do
+          for ip in $(echo "$NODES_IPS_JSON" | jq -r '.[]'); do
             echo "Writing k3s token to $ip"
             ssh -o StrictHostKeyChecking=no root@"$ip" \
               "printf '%s' '${TOKEN_B64}' | base64 -d > /etc/k3s-token && chmod 600 /etc/k3s-token"
