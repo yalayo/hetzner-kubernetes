@@ -9,6 +9,9 @@ jobs:
   infrastructure:
     name: Create/Update sever
     runs-on: ubuntu-latest
+    outputs:
+      nodes_ips: ${{ steps.terraform.outputs.nodes_ips }}
+      first_node_ip: ${{ steps.terraform.outputs.first_node_ip }}
     env:
       # fallback if needed; better to pass per-step when required
       NIX_PATH: nixpkgs=channel:nixos-24.11
@@ -39,11 +42,19 @@ jobs:
             terraform init
             terraform apply -auto-approve
 
-            # Capture output, redirect stderr to avoid debug logs polluting output
-            MASTER_IP=$(terraform output -raw master_ip | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
-            MASTER_IP="${MASTER_IP//[$'\r\n']}"
+            # Expect terraform to output a JSON array of nodes IPs called nodes_ips
+            NODES_IPS=$(terraform output -raw nodes_ips | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
+            NODES_IPS="${NODES_IPS//[$'\r\n']}"
+            echo "NODES_IPS=$NODES_IPS" >> $GITHUB_ENV
 
-            echo "MASTER_IP=$MASTER_IP" >> $GITHUB_ENV
+            # Extract first node separately for cluster-init and reference
+            FIRST_NODE_IP=$(echo "$NODES_IPS" | jq -r '.[0]')
+            FIRST_NODE_IP="${FIRST_NODE_IP//[$'\r\n']}"
+            echo "FIRST_NODE_IP=$FIRST_NODE_IP" >> $GITHUB_ENV
+
+            echo "::set-output name=nodes_ips::$NODES_IPS"
+            echo "::set-output name=first_node_ip::$FIRST_NODE_IP"
+
       - name: Prepare SSH key and config for nixos-anywhere
         run: |
           set -euo pipefail
@@ -52,19 +63,10 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_nixos_anywhere
           chmod 600 ~/.ssh/id_nixos_anywhere
 
-          # Optional: tighten SSH client usage
-          cat <<'EOF' > ~/.ssh/config
-          Host prod-master
-            HostName $MASTER_IP
-            User root
-            IdentityFile ~/.ssh/id_nixos_anywhere
-            IdentitiesOnly yes
-            StrictHostKeyChecking no
-          EOF
-          chmod 600 ~/.ssh/config
-
-          # (Optional but safer) populate known_hosts to avoid initial prompt
-          ssh-keyscan -H "$MASTER_IP" >> ~/.ssh/known_hosts
+          # Populate known_hosts for each IP
+          for ip in $(echo "$NODES_IPS" | jq -r '.[]'); do
+            ssh-keyscan -H "$ip" >> ~/.ssh/known_hosts
+          done
           chmod 600 ~/.ssh/known_hosts
 
       - name: Seed k3s token on target
@@ -74,36 +76,57 @@ jobs:
           # Base64 encode locally so we can safely transmit arbitrary token content
           TOKEN_B64=$(printf '%s' "${{ secrets.K3S_TOKEN }}" | base64 -w0)
 
-          ssh -i ~/.ssh/id_nixos_anywhere \
-              -o StrictHostKeyChecking=no \
-              -o IdentitiesOnly=yes \
-              -o UserKnownHostsFile=/dev/null \
-              root@${MASTER_IP} \
+          for ip in $(echo "$NODES_IPS" | jq -r '.[]'); do
+            echo "Writing k3s token to $ip"
+            ssh -o StrictHostKeyChecking=no root@"$ip" \
               "printf '%s' '${TOKEN_B64}' | base64 -d > /etc/k3s-token && chmod 600 /etc/k3s-token"
-      - name: Create override module with SSH public key
+          done
+
+  deploy:
+    name: Install NixOS/k3s on masters in parallel
+    needs: infrastructure
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips)[0] }}
+            is_init: true
+          - node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips)[1] }}
+            is_init: false
+          - node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips)[2] }}
+            is_init: false
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Prepare SSH key and config
         run: |
-          cd ./nixos
-          cat <<'EOF' > extra-keys.nix
-          { config, pkgs, lib, ... }:
-          {
-            users.users.root.openssh.authorizedKeys.keys = [
-              "${{ secrets.SSH_PUBLIC_KEY }}"
-            ];
-          }
-          EOF
-          ls -l
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_nixos_anywhere
+          chmod 600 ~/.ssh/id_nixos_anywhere
+
+          ssh-keyscan -H "${{ matrix.node_ip }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Install NixOS remotely
         run: |
           set -euo pipefail
-          echo "Deploying to host $MASTER_IP"
-          
-          # Use the host alias so the private key from config is used
+          IP=${{ matrix.node_ip }}
+          echo "Deploying to $IP (cluster-init=${{ matrix.is_init }})"
+
+          EXTRA_FLAGS=""
+          if [ "${{ matrix.is_init }}" = "true" ]; then
+            EXTRA_FLAGS="--cluster-init"
+          else
+            EXTRA_FLAGS="--server https://${{ needs.infrastructure.outputs.first_node_ip }}:6443"
+          fi
+
           nix run github:nix-community/nixos-anywhere -- \
-          --flake './nixos#prod-master' \
-          --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
-          --option k3s.token ${{ secrets.K3S_TOKEN }} \
-          --build-on remote \
-          --no-root-password \
-          --target-host "root@$MASTER_IP" \
-          -i ~/.ssh/id_nixos_anywhere
+            --flake './nixos#prod-node' \
+            --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
+            --option k3s.token ${{ secrets.K3S_TOKEN }} \
+            --build-on remote \
+            --no-root-password \
+            --target-host "root@${IP}" \
+            -i ~/.ssh/id_nixos_anywhere \
+            --k3s-extra-args "${EXTRA_FLAGS}"
