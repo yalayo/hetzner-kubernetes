@@ -34,11 +34,11 @@ resource "hcloud_server" "node" {
 }
 
 output "nodes_ips" {
-  value = [for s in hcloud_server.node : s.ipv4_address]
+  value = hcloud_server.node.*.ipv4_address
   description = "List of public IPv4 addresses of the three nodes"
 }
 
 output "first_node_ip" {
-  value       = hcloud_server.node[0].ipv4_address
+  value = element(hcloud_server.node.*.ipv4_address, 0)
   description = "Bootstrap (first) node, used for --cluster-init"
 }
