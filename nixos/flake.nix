@@ -17,7 +17,7 @@
         ...
     }:
     {
-        nixosConfigurations.prod-master = nixpkgs.lib.nixosSystem {
+        nixosConfigurations.prod-node = nixpkgs.lib.nixosSystem {
             system = "aarch64-linux";
             modules = [
                 disko.nixosModules.disko

@@ -1,4 +1,3 @@
-# k3s-node.nix
 { config, pkgs, lib, ... }:
 
 let
