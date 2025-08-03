@@ -43,10 +43,9 @@ jobs:
             terraform init
             terraform apply -auto-approve
 
-            # Capture only the array and first node, silencing any stderr noise
-            raw_nodes=$(terraform output -json nodes_ips 2>/dev/null)
-            NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | tr -d '\r\n')
-            FIRST_NODE_IP=$(terraform output -raw first_node_ip 2>/dev/null | tr -d '\r\n')
+            # Extract JSON array from mixed output
+            NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | grep -oP '\[.*\]')
+            FIRST_NODE_IP=$(terraform output -raw first_node_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}')
 
             # debug inspect (won’t include the [command]/... prefix in the variable)
             echo "::debug::Captured nodes_ips JSON: '${NODES_IPS_JSON}'"
@@ -57,7 +56,7 @@ jobs:
 
             # debug: show what got written
             #echo "::debug::Contents of GITHUB_OUTPUT file:"
-            #cat "$GITHUB_OUTPUT"
+            cat "$GITHUB_OUTPUT"
 
   deploy:
     name: Install NixOS/k3s on masters in parallel
