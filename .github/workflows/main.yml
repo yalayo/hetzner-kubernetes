@@ -62,7 +62,7 @@ jobs:
           # Write private key to file
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_nixos_anywhere
           chmod 600 ~/.ssh/id_nixos_anywhere
-
+          echo "$NODES_IPS"
           # Populate known_hosts for each IP
           for ip in $(echo "$NODES_IPS" | jq -r '.[]'); do
             ssh-keyscan -H "$ip" >> ~/.ssh/known_hosts
