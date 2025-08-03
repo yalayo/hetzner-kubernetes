@@ -42,17 +42,14 @@ jobs:
             cd ./terraform
             terraform init
             terraform apply -auto-approve
-
+            echo $(terraform output -json nodes_ips | jq -c '.value')
             # Get the JSON array of node IPs (raw JSON, e.g. ["1.2.3.4","..."])
             NODES_IPS_JSON=$(terraform output -json nodes_ips | jq -c '.value')
             # First node IP, stripped of any trailing newline / CR
             FIRST_NODE_IP=$(terraform output -raw first_node_ip | tr -d '\r\n')
 
-            # Export as job outputs (new syntax)
-            # Safely set outputs (JSON needs heredoc form)
-            echo "nodes_ips<<EOF" >> "$GITHUB_OUTPUT"
-            echo "$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
+            # Export as job outputs
+            echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
             echo "first_node_ip=$FIRST_NODE_IP" >> "$GITHUB_OUTPUT"
 
   deploy:
