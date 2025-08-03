@@ -50,7 +50,7 @@ jobs:
 
 
             # Expect terraform to output a JSON array of nodes IPs called nodes_ips
-            NODES_IPS_JSON=$(terraform output -json nodes_ips)
+            NODES_IPS_JSON=$(terraform output -raw nodes_ips | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
             echo "NODES_IPS_JSON<<EOF" >> "$GITHUB_ENV"
             echo "$NODES_IPS_JSON" >> "$GITHUB_ENV"
             echo "EOF" >> "$GITHUB_ENV"
