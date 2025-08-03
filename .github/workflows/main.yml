@@ -42,7 +42,7 @@ jobs:
             cd ./terraform
             terraform init
             terraform apply -auto-approve
-            echo $(terraform output -raw nodes_ips)
+            echo $(terraform output -json nodes_ips)
             # Get the JSON array of node IPs (raw JSON, e.g. ["1.2.3.4","..."])
             NODES_IPS_JSON=$(terraform output -json nodes_ips | jq -c '.value')
             # First node IP, stripped of any trailing newline / CR
