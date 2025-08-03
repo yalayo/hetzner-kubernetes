@@ -51,7 +51,10 @@ jobs:
             echo "FIRST_NODE_IP=$FIRST_NODE_IP" >> $GITHUB_ENV
 
             # Export as job outputs (new syntax)
-            echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
+            # Safely set outputs (JSON needs heredoc form)
+            echo "nodes_ips<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
             echo "first_node_ip=$FIRST_NODE_IP" >> "$GITHUB_OUTPUT"
 
       - name: Prepare SSH key and config for nixos-anywhere
