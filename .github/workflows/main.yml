@@ -43,11 +43,12 @@ jobs:
             terraform init
             terraform apply -auto-approve
             
-            echo "Ips: $(terraform output -json nodes_ips 2>/dev/null)"
+            raw=$(terraform output -json nodes_ips 2>/dev/null)
+            # compact/validate and strip newline
+            NODES_IPS_JSON=$(printf '%s' "$raw" | jq -c '.' | tr -d '\r\n')
 
-            # Capture only the array and first node, silencing any stderr noise
-            raw_nodes=$(terraform output -json nodes_ips 2>/dev/null)
-            NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | jq -c '.' | tr -d '\r\n')
+            # debug inspect (won’t include the [command]/... prefix in the variable)
+            echo "::debug::Captured nodes_ips JSON: '${NODES_IPS_JSON}'"
             FIRST_NODE_IP=$(terraform output -raw first_node_ip 2>/dev/null | tr -d '\r\n')
 
             # Export as job outputs
