@@ -118,8 +118,8 @@ jobs:
             --flake './nixos#prod-node' \
             --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
             --option k3s.token ${{ secrets.K3S_TOKEN }} \
+            --k3s-extra-args "${EXTRA_FLAGS}" \
             --build-on remote \
             --no-root-password \
             --target-host "root@$IP" \
-            -i ~/.ssh/id_nixos_anywhere \
-            --k3s-extra-args "${EXTRA_FLAGS}"
+            -i ~/.ssh/id_nixos_anywhere
