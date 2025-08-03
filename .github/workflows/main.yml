@@ -44,11 +44,8 @@ jobs:
             terraform apply -auto-approve
 
             # Extract JSON array from mixed output
-            NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | grep -oP '\[.*\]')
+            NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | grep -oP '\[.*\]' | head -n1)
             FIRST_NODE_IP=$(terraform output -raw first_node_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}')
-
-            # debug inspect (won’t include the [command]/... prefix in the variable)
-            echo "::debug::Captured nodes_ips JSON: '${NODES_IPS_JSON}'"
 
             # Export as job outputs
             echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
