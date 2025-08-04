@@ -82,7 +82,6 @@ jobs:
           nix run github:nix-community/nixos-anywhere -- \
             --flake './nixos#prod-main' \
             --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
-            #--option k3s.token ${{ secrets.K3S_TOKEN }} \
             --extra-files ./nix/main \
             --build-on remote \
             --no-root-password \
