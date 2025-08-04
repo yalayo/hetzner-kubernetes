@@ -85,9 +85,9 @@ in {
         # Wait until the main server API is reachable
         ''
           /bin/sh -c '
-            SERVER="${joinServerFromFile != "" then joinServerFromFile else config.k3s.joinServer}"
+            SERVER="${joinAddr}"
             echo "Waiting for k3s server at $SERVER..."
-            until curl -sk --max-time 5 "$SERVER"; do
+            until curl -sk --max-time 20 "$SERVER"; do
               echo "Still waiting for k3s server at $SERVER..."
               sleep 5
             done
