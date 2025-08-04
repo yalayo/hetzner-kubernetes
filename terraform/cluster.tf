@@ -45,6 +45,6 @@ output "first_node_ip" {
 }
 
 output "first_node_internal_ip" {
-  value       = element(hcloud_server.node.*.network[0].ip, 0)
+  value       = hcloud_server.node[0].network[0].ip
   description = "Internal IP of the bootstrap node"
 }
