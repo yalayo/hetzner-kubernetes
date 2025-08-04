@@ -21,6 +21,7 @@ resource "hcloud_server" "node" {
 
   public_net {
     ipv4_enabled = true
+    #ipv6_enabled = false
   }
 
   network {
