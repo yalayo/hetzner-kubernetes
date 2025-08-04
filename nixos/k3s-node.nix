@@ -36,7 +36,7 @@ in {
 
     environment.systemPackages = with pkgs; [ vim jq ];
 
-  # Kernel modules
+    # Kernel modules
     boot.kernelModules = [
       "br_netfilter"
       "overlay"
@@ -47,12 +47,12 @@ in {
       "xt_mark"
     ];
 
-  # sysctl settings (networking.sysctl → boot.kernel.sysctl in 24.11)
+    # sysctl settings (networking.sysctl → boot.kernel.sysctl in 24.11)
     boot.kernel.sysctl."net.bridge.bridge-nf-call-iptables" = 1;
     boot.kernel.sysctl."net.bridge.bridge-nf-call-ip6tables" = 1;
     boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
-  # Firewall
+    # Firewall
     networking.firewall.enable = true;
     networking.firewall.allowedTCPPorts = [ 6443 80 443 ];
 
@@ -67,14 +67,15 @@ in {
       ]));
     };
 
-  # Boot loader
+    # Boot loader
     boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
 
-  # Time
+    # Time
     time.timeZone = "UTC";
     services.timesyncd.enable = true;
 
-  # Hostname
-  networking.hostName = "cluster-node";
+    # Hostname
+    networking.hostName = "cluster-node";
+  }
 }
