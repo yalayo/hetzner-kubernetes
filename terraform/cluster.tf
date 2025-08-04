@@ -43,3 +43,8 @@ output "first_node_ip" {
   value = element(hcloud_server.node.*.ipv4_address, 0)
   description = "Bootstrap (first) node, used for --cluster-init"
 }
+
+output "first_node_internal_ip" {
+  value       = element(hcloud_server.node.*.network[0].ip, 0)
+  description = "Internal IP of the bootstrap node"
+}
