@@ -113,7 +113,7 @@ jobs:
 
                 # Role file: "init" for first node, otherwise the server URL to join
                 echo '${ROLE_CONTENT}' > /etc/k3s-role
-              EOF_REMOTE
+          EOF_REMOTE
 
       - name: Install NixOS remotely
         run: |
