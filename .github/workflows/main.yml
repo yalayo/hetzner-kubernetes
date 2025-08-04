@@ -80,7 +80,7 @@ jobs:
           echo "Deploying to $IP (cluster-init=${{ matrix.is_init }})"
 
           nix run github:nix-community/nixos-anywhere -- \
-            --flake './nixos#prod-main' \
+            --flake './nix/main/nixos#prod-main' \
             --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
             --extra-files ./nix/main \
             --build-on remote \
