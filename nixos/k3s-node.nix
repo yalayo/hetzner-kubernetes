@@ -65,14 +65,14 @@ in {
       effectiveToken = lib.mkForce (if config.k3s.token != "" then config.k3s.token else fileToken);
       # Prefer the role file over module options for clusterInit / serverAddr
       useClusterInit = isInit || config.k3s.clusterInit;
-      serverAddr = if !isInit && joinServerFromFile != "" then joinServerFromFile else config.k3s.joinServer;
+      joinAddr = if !isInit && joinServerFromFile != "" then joinServerFromFile else config.k3s.joinServer;
     in {
       enable = true;
       role = "server";
       token = effectiveToken;
       clusterInit = useClusterInit;
       # k3s wants --server=<url> to join; the option is often exposed as serverAddr or similar depending on your module
-      serverAddr = if serverAddr != "" then serverAddr else null;
+      serverAddr = joinAddr;
     };
 
     # Boot loader
