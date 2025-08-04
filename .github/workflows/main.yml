@@ -42,9 +42,70 @@ jobs:
             echo "first_node_ip=$FIRST_NODE_IP" >> "$GITHUB_OUTPUT"
             echo "first_node_internal_ip=$FIRST_NODE_INTERNAL_IP" >> "$GITHUB_OUTPUT"
 
-  deploy:
-    name: Install NixOS/k3s on masters in parallel
+  deploy-primary:
+    name: Install NixOS/k3s on the main node
     needs: infrastructure
+    runs-on: ubuntu-latest
+    env:
+      # fallback if needed; better to pass per-step when required
+      NIX_PATH: nixpkgs=channel:nixos-24.11
+    steps:
+      - uses: actions/checkout@v3
+      - name: Debug received nodes_ips
+      - name: Cache Nix store (optional speedup)
+        uses: actions/cache@v4
+        with:
+          path: /nix/store
+          key: nix-store-${{ runner.os }}-${{ github.sha }}
+          # note: caching /nix/store can be huge; adjust strategy if too large
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v10
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Prepare SSH key and config
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_nixos_anywhere
+          chmod 600 ~/.ssh/id_nixos_anywhere
+
+          ssh-keyscan -H "${{ needs.infrastructure.outputs.first_node_ip }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          echo "Writing k3s token to remote using explicit identity file"
+          # Base64 encode token
+          TOKEN_B64=$(printf '%s' "${{ secrets.K3S_TOKEN }}" | base64 -w0)
+
+          # Write token and role file on remote
+          ssh -i ~/.ssh/id_nixos_anywhere \
+              -o StrictHostKeyChecking=no \
+              -o IdentitiesOnly=yes \
+              -o UserKnownHostsFile=/dev/null \
+              root@"${{ needs.infrastructure.outputs.first_node_ip }}" <<'EOF_REMOTE'
+                printf '%s' "$TOKEN_B64" | base64 -d > /etc/k3s-token
+                chmod 600 /etc/k3s-token
+              EOF_REMOTE
+
+      - name: Install NixOS remotely
+        run: |
+          set -euo pipefail
+          IP=${{ needs.infrastructure.outputs.first_node_ip }}
+          echo "Deploying to $IP (cluster-init=${{ matrix.is_init }})"
+
+          nix run github:nix-community/nixos-anywhere -- \
+            --flake './nixos#prod-main' \
+            --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
+            --option k3s.token ${{ secrets.K3S_TOKEN }} \
+            --extra-files ./nix/main \
+            --build-on remote \
+            --no-root-password \
+            --target-host "root@$IP" \
+            -i ~/.ssh/id_nixos_anywhere
+
+  deploy:
+    name: Install NixOS/k3s on secodary nodes in parallel
+    needs: deploy-primary
     runs-on: ubuntu-latest
     env:
       # fallback if needed; better to pass per-step when required
@@ -88,12 +149,7 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
           echo "Writing k3s token to remote using explicit identity file"
-          # Determine role content
-          if [ "${{ steps.determine_init.outputs.is_init }}" = "true" ]; then
-            ROLE_CONTENT="init"
-          else
-            ROLE_CONTENT="https://${{ needs.infrastructure.outputs.first_node_internal_ip }}:6443"
-          fi
+          ROLE_CONTENT="https://${{ needs.infrastructure.outputs.first_node_internal_ip }}:6443"
 
           # Base64 encode token
           TOKEN_B64=$(printf '%s' "${{ secrets.K3S_TOKEN }}" | base64 -w0)
@@ -109,7 +165,7 @@ jobs:
 
                 # Role file: "init" for first node, otherwise the server URL to join
                 echo '${ROLE_CONTENT}' > /etc/k3s-role
-          EOF_REMOTE
+              EOF_REMOTE
 
       - name: Install NixOS remotely
         run: |
@@ -117,16 +173,9 @@ jobs:
           IP=${{ matrix.node_ip }}
           echo "Deploying to $IP (cluster-init=${{ matrix.is_init }})"
 
-          EXTRA_FLAGS=""
-          if [ "${{ steps.determine_init.outputs.is_init }}" = "true" ]; then
-            EXTRA_FLAGS="--cluster-init"
-          else
-            EXTRA_FLAGS="--server https://${{ needs.infrastructure.outputs.first_node_ip }}:6443"
-          fi
-
           # Add later --k3s-extra-args "${EXTRA_FLAGS}" \
           nix run github:nix-community/nixos-anywhere -- \
-            --flake './nixos#prod-node' \
+            --flake './nixos#prod-secondary' \
             --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
             --option k3s.token ${{ secrets.K3S_TOKEN }} \
             --extra-files ./nixos \
