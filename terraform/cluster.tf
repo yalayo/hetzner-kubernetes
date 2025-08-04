@@ -45,6 +45,11 @@ output "first_node_ip" {
 }
 
 output "first_node_internal_ip" {
-  value       = hcloud_server.node[0].network[0].ip
+  value = one([
+    for server in hcloud_server.node : one([
+      for net in server.network : net.ip
+      if server.name == "prod-node-1" && net.network == hcloud_network.network.id
+    ])
+  ])
   description = "Internal IP of the bootstrap node"
 }
