@@ -107,13 +107,13 @@ jobs:
               -o StrictHostKeyChecking=no \
               -o IdentitiesOnly=yes \
               -o UserKnownHostsFile=/dev/null \
-              root@"${{ matrix.node_ip }}" <<EOF
+              root@"${{ matrix.node_ip }}" <<'EOF_REMOTE'
                 printf '%s' '${TOKEN_B64}' | base64 -d > /etc/k3s-token
                 chmod 600 /etc/k3s-token
 
                 # Role file: "init" for first node, otherwise the server URL to join
                 echo '${ROLE_CONTENT}' > /etc/k3s-role
-              EOF
+              EOF_REMOTE
 
       - name: Install NixOS remotely
         run: |
