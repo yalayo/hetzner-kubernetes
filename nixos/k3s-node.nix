@@ -78,7 +78,7 @@ in {
     # --- retry/wait logic for non-main nodes ---
     systemd.services.k3s.serviceConfig = lib.mkIf (!isInit) {
       Restart = "always";
-      RestartSec = 10;
+      RestartSec = lib.mkForce "10s";
       StartLimitIntervalSec = 0;
 
       ExecStartPre = [
