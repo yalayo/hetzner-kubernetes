@@ -15,6 +15,11 @@ terraform {
   }
 }
 
+# Configure the Hetzner Cloud Provider
+provider "hcloud" {
+  token = "${var.hcloud_token}" 
+}
+
 variable "hcloud_token" {
   sensitive = true
 }
@@ -23,9 +28,8 @@ variable "firewall_source_ip" {
   default = "0.0.0.0"
 }
 
-# Configure the Hetzner Cloud Provider
-provider "hcloud" {
-  token = "${var.hcloud_token}" 
+locals {
+  internal_cidr = hcloud_network.network.ip_range
 }
 
 ## Open ports
@@ -39,6 +43,14 @@ resource "hcloud_firewall" "cluster" {
     source_ips = [
       "${var.firewall_source_ip}/0" 
     ]
+  }
+
+  # Kubernetes API server only reachable from inside the internal network
+  rule {
+    direction  = "in"
+    protocol   = "tcp"
+    port       = "6443"
+    source_ips = [local.internal_cidr]
   }
 }
 
