@@ -75,6 +75,27 @@ in {
       serverAddr = joinAddr;
     };
 
+    # --- retry/wait logic for non-main nodes ---
+    systemd.services.k3s.serviceConfig = lib.mkIf (!isInit) {
+      Restart = "always";
+      RestartSec = 10;
+      StartLimitIntervalSec = 0;
+
+      ExecStartPre = [
+        # Wait until the main server API is reachable
+        ''
+          /bin/sh -c '
+            SERVER="${joinServerFromFile != "" then joinServerFromFile else config.k3s.joinServer}"
+            echo "Waiting for k3s server at $SERVER..."
+            until curl -sk --max-time 5 "$SERVER"; do
+              echo "Still waiting for k3s server at $SERVER..."
+              sleep 5
+            done
+          '
+        ''
+      ];
+    };
+
     # Boot loader
     boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
