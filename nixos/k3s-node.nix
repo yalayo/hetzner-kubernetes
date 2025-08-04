@@ -7,7 +7,7 @@ let
 
   # Role marker file: either "init" or "https://<first-ip>:6443"
   roleInfo = if builtins.pathExists /etc/k3s-role then builtins.readFile /etc/k3s-role else "";
-  isInit = lib.elem (lib.splitString "" roleInfo) [ "init" ]; # simple check
+  isInit = roleInfo == "init"; # simple check
   joinServerFromFile = if roleInfo != "init" && roleInfo != "" then roleInfo else "";
 in {
   options.k3s = {
@@ -64,7 +64,7 @@ in {
     services.k3s = let
       effectiveToken = lib.mkForce (if config.k3s.token != "" then config.k3s.token else fileToken);
       # Prefer the role file over module options for clusterInit / serverAddr
-      useClusterInit = isInit or config.k3s.clusterInit;
+      useClusterInit = isInit || config.k3s.clusterInit;
       serverAddr = if !isInit && joinServerFromFile != "" then joinServerFromFile else config.k3s.joinServer;
     in {
       enable = true;
