@@ -70,10 +70,10 @@ in {
       enable = true;
       role = "server";
       token = effectiveToken;
-      tlsSan = "10.1.1.1";
       clusterInit = useClusterInit;
       # k3s wants --server=<url> to join; the option is often exposed as serverAddr or similar depending on your module
       serverAddr = joinAddr;
+      extraArgs = [ "--tls-san=10.1.1.1" ];
     };
 
     # --- retry/wait logic for non-main nodes ---
