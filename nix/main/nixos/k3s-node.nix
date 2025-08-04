@@ -1,9 +1,8 @@
 { config, pkgs, lib, ... }:
 
 let
-  fileToken = if builtins.pathExists /etc/k3s-token
-    then builtins.readFile /etc/k3s-token
-    else "";
+  # Try reading K3S_TOKEN from the evaluation environment; fall back to empty string if unset.
+  envToken = let t = builtins.tryEval (builtins.getEnv "K3S_TOKEN"); in if t.success then t.value else "";
 in {
   options.k3s = {
     token = lib.mkOption {
@@ -57,7 +56,7 @@ in {
 
     # k3s service with dynamic flags
     services.k3s = let
-      effectiveToken = lib.mkForce (if config.k3s.token != "" then config.k3s.token else fileToken);
+      effectiveToken = lib.mkForce (if config.k3s.token != "" then config.k3s.token else envToken);
     in {
       enable = true;
       role = "server";
@@ -67,13 +66,6 @@ in {
         "--tls-san=10.1.1.1"
         "--disable=traefik"
       ];
-    };
-
-    # --- retry/wait logic for non-main nodes ---
-    systemd.services.k3s.serviceConfig = lib.mkIf (!isInit) {
-      Restart = "always";
-      RestartSec = lib.mkForce "10s";
-      StartLimitIntervalSec = 0;
     };
 
     # Boot loader

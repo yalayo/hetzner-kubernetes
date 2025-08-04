@@ -49,9 +49,9 @@ jobs:
     env:
       # fallback if needed; better to pass per-step when required
       NIX_PATH: nixpkgs=channel:nixos-24.11
+      K3S_TOKEN: ${{ secrets.K3S_TOKEN }}  # export so builtins.getEnv can see it during evaluation
     steps:
       - uses: actions/checkout@v3
-      - name: Debug received nodes_ips
       - name: Cache Nix store (optional speedup)
         uses: actions/cache@v4
         with:
@@ -73,20 +73,6 @@ jobs:
           ssh-keyscan -H "${{ needs.infrastructure.outputs.first_node_ip }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-          echo "Writing k3s token to remote using explicit identity file"
-          # Base64 encode token
-          TOKEN_B64=$(printf '%s' "${{ secrets.K3S_TOKEN }}" | base64 -w0)
-
-          # Write token and role file on remote
-          ssh -i ~/.ssh/id_nixos_anywhere \
-              -o StrictHostKeyChecking=no \
-              -o IdentitiesOnly=yes \
-              -o UserKnownHostsFile=/dev/null \
-              root@"${{ needs.infrastructure.outputs.first_node_ip }}" <<'EOF_REMOTE'
-                printf '%s' "$TOKEN_B64" | base64 -d > /etc/k3s-token
-                chmod 600 /etc/k3s-token
-              EOF_REMOTE
-
       - name: Install NixOS remotely
         run: |
           set -euo pipefail
@@ -96,7 +82,7 @@ jobs:
           nix run github:nix-community/nixos-anywhere -- \
             --flake './nixos#prod-main' \
             --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
-            --option k3s.token ${{ secrets.K3S_TOKEN }} \
+            #--option k3s.token ${{ secrets.K3S_TOKEN }} \
             --extra-files ./nix/main \
             --build-on remote \
             --no-root-password \
