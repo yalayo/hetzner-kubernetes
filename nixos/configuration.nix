@@ -5,8 +5,6 @@
     "${modulesPath}/installer/scan/not-detected.nix"
     "${modulesPath}/profiles/qemu-guest.nix"
     ./disk-config.nix
-    ./k3s-options.nix
-    #./extra-keys.nix
   ];
 
   boot.loader.grub = {
