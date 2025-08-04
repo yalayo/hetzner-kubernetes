@@ -9,6 +9,7 @@ let
   roleInfo = if builtins.pathExists /etc/k3s-role then builtins.readFile /etc/k3s-role else "";
   isInit = roleInfo == "init"; # simple check
   joinServerFromFile = if roleInfo != "init" && roleInfo != "" then roleInfo else "";
+  joinAddr = if !isInit && joinServerFromFile != "" then joinServerFromFile else config.k3s.joinServer;
 in {
   options.k3s = {
     token = lib.mkOption {
@@ -65,7 +66,6 @@ in {
       effectiveToken = lib.mkForce (if config.k3s.token != "" then config.k3s.token else fileToken);
       # Prefer the role file over module options for clusterInit / serverAddr
       useClusterInit = isInit || config.k3s.clusterInit;
-      joinAddr = if !isInit && joinServerFromFile != "" then joinServerFromFile else config.k3s.joinServer;
     in {
       enable = true;
       role = "server";
@@ -85,7 +85,7 @@ in {
         # Wait until the main server API is reachable
         ''
           /bin/sh -c '
-            SERVER="${joinAddr}"
+            SERVER="${toString joinAddr}"
             echo "Waiting for k3s server at $SERVER..."
             until curl -sk --max-time 20 "$SERVER"; do
               echo "Still waiting for k3s server at $SERVER..."
