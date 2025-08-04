@@ -70,6 +70,7 @@ in {
       enable = true;
       role = "server";
       token = effectiveToken;
+      tlsSan = "10.1.1.1";
       clusterInit = useClusterInit;
       # k3s wants --server=<url> to join; the option is often exposed as serverAddr or similar depending on your module
       serverAddr = joinAddr;
@@ -80,20 +81,6 @@ in {
       Restart = "always";
       RestartSec = lib.mkForce "10s";
       StartLimitIntervalSec = 0;
-
-      ExecStartPre = [
-        # Wait until the main server API is reachable
-        ''
-          /bin/sh -c '
-            SERVER="${toString joinAddr}"
-            echo "Waiting for k3s server at $SERVER..."
-            until curl -sk --max-time 20 "$SERVER"; do
-              echo "Still waiting for k3s server at $SERVER..."
-              sleep 5
-            done
-          '
-        ''
-      ];
     };
 
     # Boot loader
