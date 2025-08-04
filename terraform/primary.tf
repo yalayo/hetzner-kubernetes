@@ -1,17 +1,6 @@
-## Variable to store the ssh private key
-variable "ssh_private_key" {
-  sensitive = true
-}
-
-## Variable to the k3s token
-variable "k3s_token" {
-  sensitive = true
-}
-
-## VM
-resource "hcloud_server" "node" { 
-  count       = 3
-  name        = "prod-node-${count.index+1}"
+## Primary node
+resource "hcloud_server" "main" {
+  name        = "prod-main"
   image       = "ubuntu-24.04"
   location    = "nbg1"
   server_type = "cax11" 
@@ -26,7 +15,7 @@ resource "hcloud_server" "node" {
 
   network {
     network_id = hcloud_network.network.id
-    ip = "10.1.1.${count.index+1}"
+    ip = "10.1.1.1"
   }
 
   depends_on = [
@@ -34,13 +23,8 @@ resource "hcloud_server" "node" {
   ]
 }
 
-output "nodes_ips" {
-  value = hcloud_server.node.*.ipv4_address
-  description = "List of public IPv4 addresses of the three nodes"
-}
-
 output "first_node_ip" {
-  value = element(hcloud_server.node.*.ipv4_address, 0)
+  value = hcloud_server.main.ipv4_address
   description = "Bootstrap (first) node, used for --cluster-init"
 }
 
