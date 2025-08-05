@@ -30,48 +30,50 @@ jobs:
             cd ./terraform
             terraform init
 
-            # Run plan with detailed exit code: 0 = no changes, 2 = changes to apply
-            set +e
-            terraform plan -out=planned.tfplan -detailed-exitcode
-            PLAN_EXIT_CODE=$?
-            set -e
+            # # Run plan with detailed exit code: 0 = no changes, 2 = changes to apply
+            # set +e
+            # terraform plan -out=planned.tfplan -detailed-exitcode
+            # PLAN_EXIT_CODE=$?
+            # set -e
 
-            CHANGED=false
+            # CHANGED=false
 
-            if [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-              echo "Resource changes detected; applying."
-              terraform apply -auto-approve planned.tfplan
-              CHANGED=true
-            elif [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-              echo "No resource changes according to exit code 0; checking for output-only changes."
+            # if [ "$PLAN_EXIT_CODE" -eq 2 ]; then
+            #   echo "Resource changes detected; applying."
+            #   terraform apply -auto-approve planned.tfplan
+            #   CHANGED=true
+            # elif [ "$PLAN_EXIT_CODE" -eq 0 ]; then
+            #   echo "No resource changes according to exit code 0; checking for output-only changes."
 
-              # Try to render the plan as JSON
-              if ! terraform show -json planned.tfplan > plan.json 2>show_err.txt; then
-                echo "ERROR: 'terraform show -json' failed. stderr:"
-                cat show_err.txt
-                exit 1
-              fi
+            #   # Try to render the plan as JSON
+            #   if ! terraform show -json planned.tfplan > plan.json 2>show_err.txt; then
+            #     echo "ERROR: 'terraform show -json' failed. stderr:"
+            #     cat show_err.txt
+            #     exit 1
+            #   fi
 
-              # Validate JSON
-              if ! jq empty plan.json >/dev/null 2>&1; then
-                echo "ERROR: plan.json is not valid JSON; dumping beginning of file for inspection:"
-                head -n 200 plan.json
-                exit 1
-              fi
+            #   # Validate JSON
+            #   if ! jq empty plan.json >/dev/null 2>&1; then
+            #     echo "ERROR: plan.json is not valid JSON; dumping beginning of file for inspection:"
+            #     head -n 200 plan.json
+            #     exit 1
+            #   fi
 
-              # Count output changes (fallback to 0 if missing)
-              OUTPUT_CHANGES=$(jq '.output_changes // {} | length' plan.json)
-              if [ "$OUTPUT_CHANGES" -gt 0 ]; then
-                echo "Output-only changes detected ($OUTPUT_CHANGES); applying to refresh outputs."
-                terraform apply -auto-approve planned.tfplan
-                CHANGED=true
-              else
-                echo "No changes to apply (neither resources nor outputs)."
-              fi
-            else
-              echo "Terraform plan failed with exit code $PLAN_EXIT_CODE" >&2
-              exit $PLAN_EXIT_CODE
-            fi
+            #   # Count output changes (fallback to 0 if missing)
+            #   OUTPUT_CHANGES=$(jq '.output_changes // {} | length' plan.json)
+            #   if [ "$OUTPUT_CHANGES" -gt 0 ]; then
+            #     echo "Output-only changes detected ($OUTPUT_CHANGES); applying to refresh outputs."
+            #     terraform apply -auto-approve planned.tfplan
+            #     CHANGED=true
+            #   else
+            #     echo "No changes to apply (neither resources nor outputs)."
+            #   fi
+            # else
+            #   echo "Terraform plan failed with exit code $PLAN_EXIT_CODE" >&2
+            #   exit $PLAN_EXIT_CODE
+            # fi
+
+            terraform apply -auto-approve
 
             # Extract JSON array from mixed output
             NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | grep -oP '\[(?:"[^"]*",?)+\]' | head -n1)
@@ -83,12 +85,12 @@ jobs:
             echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
             echo "first_node_ip=$FIRST_NODE_IP" >> "$GITHUB_OUTPUT"
             echo "first_node_internal_ip=$FIRST_NODE_INTERNAL_IP" >> "$GITHUB_OUTPUT"
-            echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+            #echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
 
   deploy-primary:
     name: Install NixOS/k3s on the main node
     needs: infrastructure
-    if: needs.infrastructure.outputs.changed == 'true'
+    #if: needs.infrastructure.outputs.changed == 'true'
     runs-on: ubuntu-latest
     env:
       # fallback if needed; better to pass per-step when required
