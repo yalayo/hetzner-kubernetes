@@ -138,8 +138,6 @@ jobs:
             --target-host "root@$IP" \
             -i ~/.ssh/id_nixos_anywhere
 
-          rm ./nix/main/k3s-token
-
   # deploy:
   #   name: Install NixOS/k3s on secodary nodes in parallel
   #   needs: deploy-primary
