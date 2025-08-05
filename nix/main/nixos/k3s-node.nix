@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, k3s ? { token = ""; }, ... }: # Accept k3s.token as flake arg
 
 let
   # Try reading K3S_TOKEN from the evaluation environment; fall back to empty string if unset.
@@ -7,7 +7,7 @@ in {
   options.k3s = {
     token = lib.mkOption {
       type = lib.types.str;
-      default = "";
+      default = k3s.token;  # Use specialArg default
       description = "Shared k3s cluster token";
     };
     clusterInit = lib.mkOption {

@@ -24,6 +24,11 @@
                 ./configuration.nix
                 ./k3s-node.nix
             ];
+            specialArgs = {
+                k3s = {
+                    token = builtins.getEnv "k3s.token"; # Accept from `--option k3s.token ...`
+                };
+            };
         };
     };
 }
