@@ -43,15 +43,30 @@ jobs:
               terraform apply -auto-approve planned.tfplan
               CHANGED=true
             elif [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-              # Detect output-only changes by inspecting the saved plan
-              terraform show -json planned.tfplan > plan.json
+              echo "No resource changes according to exit code 0; checking for output-only changes."
+
+              # Try to render the plan as JSON
+              if ! terraform show -json planned.tfplan > plan.json 2>show_err.txt; then
+                echo "ERROR: 'terraform show -json' failed. stderr:"
+                cat show_err.txt
+                exit 1
+              fi
+
+              # Validate JSON
+              if ! jq empty plan.json >/dev/null 2>&1; then
+                echo "ERROR: plan.json is not valid JSON; dumping beginning of file for inspection:"
+                head -n 200 plan.json
+                exit 1
+              fi
+
+              # Count output changes (fallback to 0 if missing)
               OUTPUT_CHANGES=$(jq '.output_changes // {} | length' plan.json)
               if [ "$OUTPUT_CHANGES" -gt 0 ]; then
-                echo "Output-only changes detected; applying to refresh outputs."
+                echo "Output-only changes detected ($OUTPUT_CHANGES); applying to refresh outputs."
                 terraform apply -auto-approve planned.tfplan
                 CHANGED=true
               else
-                echo "No changes to apply."
+                echo "No changes to apply (neither resources nor outputs)."
               fi
             else
               echo "Terraform plan failed with exit code $PLAN_EXIT_CODE" >&2
