@@ -26,7 +26,7 @@
             ];
             specialArgs = {
                 k3s = {
-                    token = builtins.getEnv "k3s.token"; # Accept from `--option k3s.token ...`
+                    token = builtins.getEnv "K3S_TOKEN"; # Accept from `--option k3s.token ...`
                 };
             };
         };

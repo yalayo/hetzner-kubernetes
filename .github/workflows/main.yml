@@ -128,7 +128,7 @@ jobs:
           echo "Deploying to $IP (cluster-init=${{ matrix.is_init }})"
 
           # Some redundancy
-          #export K3S_TOKEN="${{ secrets.K3S_TOKEN }}"
+          export K3S_TOKEN="${{ secrets.K3S_TOKEN }}"
 
           nix run github:nix-community/nixos-anywhere -- \
             --flake './nix/main/nixos#prod-main' \
