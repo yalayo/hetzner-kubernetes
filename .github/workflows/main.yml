@@ -127,14 +127,13 @@ jobs:
           IP=${{ needs.infrastructure.outputs.first_node_ip }}
           echo "Deploying to $IP (cluster-init=${{ matrix.is_init }})"
 
-          echo "${{ secrets.K3S_TOKEN }}" 
-          echo "${{ secrets.K3S_TOKEN }}" > ./nix/main/k3s-token
+          export K3S_TOKEN="${{ secrets.K3S_TOKEN }}"
 
           nix run github:nix-community/nixos-anywhere -- \
             --flake './nix/main/nixos#prod-main' \
             --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
             --extra-files ./nix/main \
-            --build-on remote \
+            --build-on local \
             --no-root-password \
             --target-host "root@$IP" \
             -i ~/.ssh/id_nixos_anywhere

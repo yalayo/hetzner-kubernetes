@@ -68,7 +68,7 @@ in {
     in {
       enable = true;
       role = "server";
-      token = effectiveToken;
+      token = envToken;
       clusterInit = true;
       extraFlags = [
         "--tls-san=10.1.1.1"
