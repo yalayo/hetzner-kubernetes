@@ -16,7 +16,7 @@
   services.openssh.passwordAuthentication = false;
 
   users.users.root.openssh.authorizedKeys.keys = [
-    (builtins.readFile ../id_nixos_anywhere.pub)
+    (builtins.readFile ./id_nixos_anywhere.pub)
   ];
 
   environment.systemPackages = with pkgs; [
