@@ -116,8 +116,8 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_nixos_anywhere
           chmod 600 ~/.ssh/id_nixos_anywhere
 
-          echo "${{ secrets.SSH_PUBLIC_KEY }}" > ./nix/main/nixos/id_nixos_anywhere.pub
-          chmod 600 ./nix/main/nixos/id_nixos_anywhere.pub
+          echo "${{ secrets.SSH_PUBLIC_KEY }}" > ./nix/main/nix/id_nixos_anywhere.pub
+          chmod 600 ./nix/main/id_nixos_anywhere.pub
 
           ssh-keyscan -H "${{ needs.infrastructure.outputs.first_node_ip }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
