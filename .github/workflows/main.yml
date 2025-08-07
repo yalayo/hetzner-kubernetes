@@ -143,8 +143,7 @@ jobs:
           IP=${{ needs.infrastructure.outputs.first_node_ip }}
           echo "Deploying to $IP"
 
-          export K3S_TOKEN="${{ secrets.K3S_TOKEN }}"
-          echo "${{ secrets.K3S_TOKEN }}" > ./k3s-token.txt
+          cat ./nix/main/nixos/k3s-options.nix
 
           nix run github:nix-community/nixos-anywhere -- \
             --flake './nix/main/nixos#prod-main' \
@@ -153,7 +152,7 @@ jobs:
             --disk-encryption-keys /k3s-token ./k3s-token.txt \
             --build-on local \
             --no-root-password \
-            --debug
+            --debug \
             --target-host "root@$IP" \
             -i ~/.ssh/id_nixos_anywhere
 
