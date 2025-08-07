@@ -1,39 +1,7 @@
-{ config, pkgs, lib, k3s ? { token = ""; }, ... }: # Accept k3s.token as flake arg
+{ config, pkgs, lib, ... }:
 
-let
-  # Path the token file will be copied to by `--extra-files`
-  tokenFilePath = "/k3s-token";
-
-  # Try reading from /k3s-token if it exists
-  fileToken =
-    if builtins.pathExists tokenFilePath
-    then builtins.readFile tokenFilePath
-    else "";
-  # Try reading K3S_TOKEN from the evaluation environment; fall back to empty string if unset.
-  envToken = let t = builtins.tryEval (builtins.getEnv "K3S_TOKEN"); in if t.success then t.value else "";
-in {
-  options.k3s = {
-    token = lib.mkOption {
-      type = lib.types.str;
-      default = fileToken;
-      description = "Shared k3s cluster token";
-    };
-    clusterInit = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Whether to run with --cluster-init (first server)";
-    };
-    joinServer = lib.mkOption {
-      type = lib.types.str;
-      default = "";
-      description = "Existing server to join, e.g. https://ip:6443";
-    };
-    tlsSan = lib.mkOption {
-      type = lib.types.str;
-      default = "";
-      description = "Optional TLS SAN for k3s";
-    };
-  };
+{
+  imports = [ ./k3s-options.nix ];
 
   config = {
     system.stateVersion = "24.11";
@@ -63,9 +31,7 @@ in {
     networking.firewall.allowedTCPPorts = [ 6443 80 443 ];
 
     # k3s service with dynamic flags
-    services.k3s = let
-      effectiveToken = lib.mkForce (if config.k3s.token != "" then config.k3s.token else fileToken);
-    in {
+    services.k3s = {
       enable = true;
       role = "server";
       token = config.k3s.token;
