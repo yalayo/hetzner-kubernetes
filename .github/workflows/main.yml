@@ -122,6 +122,19 @@ jobs:
           ssh-keyscan -H "${{ needs.infrastructure.outputs.first_node_ip }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+          # Create options with its default value
+          cat > ./nix/main/nixos/k3s-options.nix <<EOF
+          { lib, config, ... }:{
+            options.k3s = {
+              token = lib.mkOption {
+                type = lib.types.str;
+                default = "${{ secrets.K3S_TOKEN }}";
+                description = "Shared k3s cluster token";
+              };
+            };
+          }
+          EOF
+
       - name: Install NixOS remotely
         env:
           K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
@@ -140,6 +153,7 @@ jobs:
             --disk-encryption-keys /k3s-token ./k3s-token.txt \
             --build-on local \
             --no-root-password \
+            --debug
             --target-host "root@$IP" \
             -i ~/.ssh/id_nixos_anywhere
 
