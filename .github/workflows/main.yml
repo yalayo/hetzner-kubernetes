@@ -131,11 +131,13 @@ jobs:
           echo "Deploying to $IP"
 
           export K3S_TOKEN="${{ secrets.K3S_TOKEN }}"
+          echo "${{ secrets.K3S_TOKEN }}" > ./k3s-token.txt
 
           nix run github:nix-community/nixos-anywhere -- \
             --flake './nix/main/nixos#prod-main' \
             --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
             --extra-files ./nix/main \
+            --disk-encryption-keys /k3s-token ./k3s-token.txt
             --build-on local \
             --no-root-password \
             --target-host "root@$IP" \

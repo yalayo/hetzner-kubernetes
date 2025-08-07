@@ -15,7 +15,7 @@ in {
   options.k3s = {
     token = lib.mkOption {
       type = lib.types.str;
-      default = "";  # Use specialArg default
+      default = fileToken;
       description = "Shared k3s cluster token";
     };
     clusterInit = lib.mkOption {
@@ -68,7 +68,7 @@ in {
     in {
       enable = true;
       role = "server";
-      token = envToken;
+      token = config.k3s.token;;
       clusterInit = true;
       extraFlags = [
         "--tls-san=10.1.1.1"
