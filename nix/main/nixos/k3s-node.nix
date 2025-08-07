@@ -68,7 +68,7 @@ in {
     in {
       enable = true;
       role = "server";
-      token = config.k3s.token;;
+      token = config.k3s.token;
       clusterInit = true;
       extraFlags = [
         "--tls-san=10.1.1.1"
