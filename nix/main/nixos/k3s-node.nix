@@ -76,10 +76,6 @@ in {
       ];
     };
 
-    # Boot loader
-    #boot.loader.systemd-boot.enable = true;
-    #boot.loader.efi.canTouchEfiVariables = true;
-
     # Time
     time.timeZone = "UTC";
     services.timesyncd.enable = true;
