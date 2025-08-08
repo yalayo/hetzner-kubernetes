@@ -3,7 +3,7 @@ resource "hcloud_server" "main" {
   name        = "prod-main"
   image       = "ubuntu-24.04"
   location    = "nbg1"
-  server_type = "cx22" 
+  server_type = "cax11" 
   keep_disk   = true
   ssh_keys    = [data.hcloud_ssh_key.ssh_key.id] 
   firewall_ids = [hcloud_firewall.cluster.id]
