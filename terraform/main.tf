@@ -57,7 +57,7 @@ resource "hcloud_firewall" "cluster" {
     direction  = "in"
     protocol   = "tcp"
     port       = "2379-2380"
-    source_ips = ["10.1.1.0/16"]
+    source_ips = ["10.1.1.0/24"]
   }
 }
 
