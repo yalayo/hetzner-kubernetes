@@ -157,9 +157,9 @@ jobs:
             --target-host "root@$IP" \
             -i ~/.ssh/id_nixos_anywhere
 
-  deploy:
+  deploy-secondary:
     name: Install NixOS/k3s on secodary nodes in parallel
-    #needs: deploy-primary Not needed for the moment, enable later
+    needs: deploy-primary Not needed for the moment, enable later
     runs-on: ubuntu-latest
     env:
       # fallback if needed; better to pass per-step when required
