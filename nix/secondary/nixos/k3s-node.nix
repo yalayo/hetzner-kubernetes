@@ -65,6 +65,6 @@ in {
     services.timesyncd.enable = true;
 
     # Hostname
-    networking.hostName = "prod-main";
+    networking.hostName = "prod-node-1";
   };
 }
