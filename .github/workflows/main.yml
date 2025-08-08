@@ -23,6 +23,10 @@ jobs:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
       - name: Terraform Plan
         id: plan
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
         run: |
           cd ./terraform
           terraform init
