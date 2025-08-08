@@ -159,7 +159,7 @@ jobs:
 
   deploy-secondary:
     name: Install NixOS/k3s on secodary nodes in parallel
-    needs: deploy-primary Not needed for the moment, enable later
+    needs: deploy-primary
     runs-on: ubuntu-latest
     env:
       # fallback if needed; better to pass per-step when required
