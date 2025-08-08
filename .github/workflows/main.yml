@@ -122,19 +122,6 @@ jobs:
           ssh-keyscan -H "${{ needs.infrastructure.outputs.first_node_ip }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-          # Create options with its default value
-          cat > ./nix/main/nixos/k3s-options.nix <<EOF
-          { lib, config, ... }:{
-            options.k3s = {
-              token = lib.mkOption {
-                type = lib.types.str;
-                default = "${{ secrets.K3S_TOKEN }}";
-                description = "Shared k3s cluster token";
-              };
-            };
-          }
-          EOF
-
       - name: Install NixOS remotely
         env:
           K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
@@ -192,25 +179,6 @@ jobs:
 
           ssh-keyscan -H "${{ matrix.node_ip }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
-
-          echo "Writing k3s token to remote using explicit identity file"
-          ROLE_CONTENT="https://${{ needs.infrastructure.outputs.first_node_internal_ip }}:6443"
-
-          # Base64 encode token
-          TOKEN_B64=$(printf '%s' "${{ secrets.K3S_TOKEN }}" | base64 -w0)
-
-          # Write token and role file on remote
-          ssh -i ~/.ssh/id_nixos_anywhere \
-              -o StrictHostKeyChecking=no \
-              -o IdentitiesOnly=yes \
-              -o UserKnownHostsFile=/dev/null \
-              root@"${{ matrix.node_ip }}" <<'EOF_REMOTE'
-                printf '%s' "$TOKEN_B64" | base64 -d > /etc/k3s-token
-                chmod 600 /etc/k3s-token
-
-                # Role file: "init" for first node, otherwise the server URL to join
-                echo '${ROLE_CONTENT}' > /etc/k3s-role
-              EOF_REMOTE
 
       - name: Install NixOS remotely
         run: |
