@@ -52,6 +52,13 @@ resource "hcloud_firewall" "cluster" {
     port       = "6443"
     source_ips = [local.internal_cidr]
   }
+
+  rule {
+    direction  = "in"
+    protocol   = "tcp"
+    port       = "2379-2380"
+    source_ips = ["10.1.1.0/16"]
+  }
 }
 
 ## Networking
