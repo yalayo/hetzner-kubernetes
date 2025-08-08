@@ -30,10 +30,8 @@ jobs:
         run: |
           cd ./terraform
           terraform init
-          set +e
-          terraform plan -out=planned.tfplan -detailed-exitcode
-          PLAN_EXIT_CODE=$?
-          set -e
+
+          PLAN_EXIT_CODE=$(terraform plan -out=planned.tfplan -detailed-exitcode)
 
           echo "Plan exit code: $PLAN_EXIT_CODE"
           
