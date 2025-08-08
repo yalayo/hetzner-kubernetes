@@ -188,7 +188,7 @@ jobs:
 
           # Add later --k3s-extra-args "${EXTRA_FLAGS}" \
           nix run github:nix-community/nixos-anywhere -- \
-            --flake './nix/main/nixos#prod-secondary' \
+            --flake './nix/secondary/nixos#prod-secondary' \
             --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
             --option k3s.token ${{ secrets.K3S_TOKEN }} \
             --extra-files ./nix/secondary \
