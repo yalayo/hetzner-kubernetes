@@ -13,7 +13,6 @@ jobs:
     outputs:
       nodes_ips: ${{ steps.terraform.outputs.nodes_ips }}
       first_node_ip: ${{ steps.terraform.outputs.first_node_ip }}
-      changed: ${{ steps.set_changed.outputs.changed }}
     
     steps:
       - uses: actions/checkout@v3
@@ -21,31 +20,16 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      - name: Terraform Plan
-        id: plan
-        env:
-          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
-          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
-        run: |
-          cd ./terraform
-          terraform init
-
-          PLAN_EXIT_CODE=$(terraform show -json planned.tfplan)
-
-          echo "Plan exit code: $PLAN_EXIT_CODE"
-          
-          #echo "plan_exit_code=$PLAN_EXIT_CODE" >> $GITHUB_ENV
-      - name: Deploy with Terraform (if there are changes)
+      - name: Deploy with Terraform
         id: terraform
-        if: env.plan_exit_code == '2'
         env:
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
         run: |
             cd ./terraform
-            terraform apply -auto-approve planned.tfplan
+            terraform init
+            terraform apply -auto-approve
 
             # Extract JSON array from mixed output
             NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | grep -oP '\[(?:"[^"]*",?)+\]' | head -n1)
@@ -57,19 +41,12 @@ jobs:
             echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
             echo "first_node_ip=$FIRST_NODE_IP" >> "$GITHUB_OUTPUT"
             echo "first_node_internal_ip=$FIRST_NODE_INTERNAL_IP" >> "$GITHUB_OUTPUT"
-      - name: Set changed output
-        id: set_changed
-        run: |
-          if [ "${{ env.plan_exit_code }}" -eq 2 ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
+            #echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
 
   deploy-primary:
     name: Install NixOS/k3s on the main node
     needs: infrastructure
-    if: needs.infrastructure.outputs.changed == 'true'
+    #if: needs.infrastructure.outputs.changed == 'true'
     runs-on: ubuntu-latest
     env:
       # fallback if needed; better to pass per-step when required
@@ -126,7 +103,6 @@ jobs:
   deploy-secondary:
     name: Install NixOS/k3s on secodary nodes in parallel
     needs: [infrastructure, deploy-primary]
-    if: needs.infrastructure.outputs.changed == 'true'
     runs-on: ubuntu-latest
     env:
       # fallback if needed; better to pass per-step when required
