@@ -35,7 +35,7 @@ jobs:
 
           echo "Plan exit code: $PLAN_EXIT_CODE"
           
-          echo "plan_exit_code=$PLAN_EXIT_CODE" >> $GITHUB_ENV
+          #echo "plan_exit_code=$PLAN_EXIT_CODE" >> $GITHUB_ENV
       - name: Deploy with Terraform (if there are changes)
         id: terraform
         if: env.plan_exit_code == '2'
