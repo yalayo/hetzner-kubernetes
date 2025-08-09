@@ -77,7 +77,6 @@ jobs:
 
           ssh-keyscan -H "${{ needs.infrastructure.outputs.first_node_ip }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
-
       - name: Install NixOS remotely
         env:
           K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
@@ -99,6 +98,13 @@ jobs:
             --debug \
             --target-host "root@$IP" \
             -i ~/.ssh/id_nixos_anywhere
+      - name: Get k3s token from main node
+        id: get_token
+        run: |
+          set -euo pipefail
+          IP=${{ needs.infrastructure.outputs.first_node_ip }}
+          TOKEN=$(ssh -i ~/.ssh/id_nixos_anywhere root@$IP "sudo cat /var/lib/rancher/k3s/server/node-token" | tr -d '\n')
+          echo "k3s_token=$TOKEN" >> "$GITHUB_OUTPUT"
 
   deploy-secondary:
     name: Install NixOS/k3s on secodary nodes in parallel
@@ -158,4 +164,4 @@ jobs:
           IP=${{ matrix.node_ip }}
           SERVER_IP=${{ needs.infrastructure.outputs.first_node_internal_ip }}
           ssh -i ~/.ssh/id_nixos_anywhere root@$IP \
-            "k3s agent --server https://$SERVER_IP:6443 --token '${{ secrets.K3S_TOKEN }}' &"
+            "k3s agent --server https://$SERVER_IP:6443 --token '${{ needs.deploy-primary.outputs.k3s_token }}' &"
