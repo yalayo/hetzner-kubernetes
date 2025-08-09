@@ -31,7 +31,7 @@ jobs:
           cd ./terraform
           terraform init
 
-          PLAN_EXIT_CODE=$(terraform show -json planned.tfplan | jq '.output_changes | length')
+          PLAN_EXIT_CODE=$(terraform show -json planned.tfplan)
 
           echo "Plan exit code: $PLAN_EXIT_CODE"
           
