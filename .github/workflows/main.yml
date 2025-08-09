@@ -192,8 +192,11 @@ jobs:
       - name: Connect agent to the main node
         run: |
           set -euo pipefail
-          echo "k3s_token='${{ needs.deploy-primary.outputs.k3s_token }}'"
           IP=${{ matrix.node_ip }}
           SERVER_IP=${{ needs.infrastructure.outputs.first_node_internal_ip }}
-          ssh -i ~/.ssh/id_nixos_anywhere root@$IP \
-            "k3s agent --server https://$SERVER_IP:6443 --token '${{ needs.deploy-primary.outputs.k3s_token }}' &"
+          TOKEN='${{ needs.deploy-primary.outputs.k3s_token }}'
+          echo "Connecting to $IP with token: $TOKEN"
+          ssh -i ~/.ssh/id_nixos_anywhere root@$IP "
+            echo 'Token received: \"$TOKEN\"'
+            k3s agent --server https://$SERVER_IP:6443 --token \"$TOKEN\"
+          "
