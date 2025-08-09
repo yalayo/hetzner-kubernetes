@@ -129,6 +129,8 @@ jobs:
           ' > token.txt
 
           TOKEN=$(tr -d '\n' < token.txt)
+          cat token.txt
+          echo "Token: $TOKEN"
           echo "k3s_token=$TOKEN" >> "$GITHUB_OUTPUT"
 
   deploy-secondary:
