@@ -113,7 +113,22 @@ jobs:
         run: |
           set -euo pipefail
           IP=${{ needs.infrastructure.outputs.first_node_ip }}
-          TOKEN=$(ssh -i ~/.ssh/id_nixos_anywhere root@$IP "sudo cat /var/lib/rancher/k3s/server/node-token" | tr -d '\n')
+
+          echo "Waiting for k3s token on $IP..."
+          ssh -i ~/.ssh/id_nixos_anywhere root@$IP '
+            for i in {1..30}; do
+              if [ -f /var/lib/rancher/k3s/server/node-token ]; then
+                cat /var/lib/rancher/k3s/server/node-token
+                exit 0
+              fi
+              echo "[$i/30] Token file not ready, retrying in 5s..."
+              sleep 5
+            done
+            echo "Timed out waiting for k3s token" >&2
+            exit 1
+          ' > token.txt
+
+          TOKEN=$(tr -d '\n' < token.txt)
           echo "k3s_token=$TOKEN" >> "$GITHUB_OUTPUT"
 
   deploy-secondary:
