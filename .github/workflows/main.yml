@@ -99,7 +99,14 @@ jobs:
         run: |
           IP=${{ needs.infrastructure.outputs.first_node_ip }}
           ssh-keygen -R "$IP" >/dev/null 2>&1 || true
-          ssh-keyscan -H "$IP" >> ~/.ssh/known_hosts
+          
+          # Retry ssh-keyscan up to 5 times
+          for i in {1..5}; do
+            ssh-keyscan -H "$IP" >> ~/.ssh/known_hosts 2>/dev/null && break
+            echo "[$i/5] Host $IP not ready, retrying in 5s..."
+            sleep 5
+          done
+
           chmod 600 ~/.ssh/known_hosts
       - name: Get k3s token from main node
         id: get_token
@@ -165,7 +172,14 @@ jobs:
         run: |
           IP=${{ matrix.node_ip }}
           ssh-keygen -R "$IP" >/dev/null 2>&1 || true
-          ssh-keyscan -H "$IP" >> ~/.ssh/known_hosts
+          
+          # Retry ssh-keyscan up to 5 times
+          for i in {1..5}; do
+            ssh-keyscan -H "$IP" >> ~/.ssh/known_hosts 2>/dev/null && break
+            echo "[$i/5] Host $IP not ready, retrying in 5s..."
+            sleep 5
+          done
+
           chmod 600 ~/.ssh/known_hosts
       - name: Connect agent to the main node
         run: |
