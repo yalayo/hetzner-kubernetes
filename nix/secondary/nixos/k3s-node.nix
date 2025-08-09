@@ -11,9 +11,6 @@ let
     else "";
   # Try reading K3S_TOKEN from the evaluation environment; fall back to empty string if unset.
   envToken = let t = builtins.tryEval (builtins.getEnv "K3S_TOKEN"); in if t.success then t.value else "";
-
-  seed = builtins.toString (builtins.currentTime); 
-  shortHash = builtins.substring 0 6 (builtins.hashString "sha256" seed);
 in {
   options.k3s = {
     token = lib.mkOption {
@@ -68,6 +65,6 @@ in {
     services.timesyncd.enable = true;
 
     # Hostname
-    networking.hostName = "prod-node-${shortHash}";
+    networking.hostName = "prod-node-1";
   };
 }
