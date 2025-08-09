@@ -194,9 +194,6 @@ jobs:
           set -euo pipefail
           IP=${{ matrix.node_ip }}
           SERVER_IP=${{ needs.infrastructure.outputs.first_node_internal_ip }}
-          TOKEN='${{ needs.deploy-primary.outputs.k3s_token }}'
-          echo "Connecting to $IP with token: $TOKEN"
           ssh -i ~/.ssh/id_nixos_anywhere root@$IP "
-            echo 'Token received: \"$TOKEN\"'
-            k3s agent --server https://$SERVER_IP:6443 --token \"$TOKEN\"
+            nohup k3s agent --server https://$SERVER_IP:6443 --token \"$TOKEN\" > /var/log/k3s-agent.log 2>&1 &
           "
