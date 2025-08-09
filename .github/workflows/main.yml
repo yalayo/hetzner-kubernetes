@@ -98,7 +98,7 @@ jobs:
       - name: Refresh SSH host key for main node
         run: |
           IP=${{ needs.infrastructure.outputs.first_node_ip }}
-          ssh-keygen -R "$IP" || true
+          ssh-keygen -R "$IP" >/dev/null 2>&1 || true
           ssh-keyscan -H "$IP" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
       - name: Get k3s token from main node
@@ -164,7 +164,7 @@ jobs:
       - name: Refresh SSH host key for secondary node
         run: |
           IP=${{ matrix.node_ip }}
-          ssh-keygen -R "$IP" || true
+          ssh-keygen -R "$IP" >/dev/null 2>&1 || true
           ssh-keyscan -H "$IP" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
       - name: Connect agent to the main node
