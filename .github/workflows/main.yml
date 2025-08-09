@@ -152,3 +152,10 @@ jobs:
             --no-root-password \
             --target-host "root@$IP" \
             -i ~/.ssh/id_nixos_anywhere
+      - name: Connect agent to the main node
+        run: |
+          set -euo pipefail
+          IP=${{ matrix.node_ip }}
+          SERVER_IP=${{ needs.infrastructure.outputs.first_node_internal_ip }}
+          ssh -i ~/.ssh/id_nixos_anywhere root@$IP \
+            "k3s agent --server https://$SERVER_IP:6443 --token '${{ secrets.K3S_TOKEN }}' &"
