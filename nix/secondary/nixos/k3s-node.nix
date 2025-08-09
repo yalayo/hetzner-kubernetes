@@ -11,6 +11,9 @@ let
     else "";
   # Try reading K3S_TOKEN from the evaluation environment; fall back to empty string if unset.
   envToken = let t = builtins.tryEval (builtins.getEnv "K3S_TOKEN"); in if t.success then t.value else "";
+
+  seed = builtins.toString (builtins.currentTime); 
+  shortHash = builtins.substring 0 6 (builtins.hashString "sha256" seed);
 in {
   options.k3s = {
     token = lib.mkOption {
@@ -52,8 +55,8 @@ in {
       effectiveToken = lib.mkForce (if config.k3s.token != "" then config.k3s.token else fileToken);
     in {
       enable = true;
-      role = "server";
-      token = effectiveToken;
+      role = "agent";
+      token = "placeholder";
       serverAddr = "https://10.1.1.1:6443";
       extraFlags = [
         "--disable=traefik"
@@ -65,6 +68,6 @@ in {
     services.timesyncd.enable = true;
 
     # Hostname
-    networking.hostName = "prod-node-1";
+    networking.hostName = "prod-node-${shortHash}";
   };
 }
