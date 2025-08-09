@@ -13,7 +13,7 @@ jobs:
     outputs:
       nodes_ips: ${{ steps.terraform.outputs.nodes_ips }}
       first_node_ip: ${{ steps.terraform.outputs.first_node_ip }}
-    
+      first_node_internal_ip: ${{ steps.terraform.outputs.first_node_internal_ip }}
     steps:
       - uses: actions/checkout@v3
       - name: Setup Terraform
@@ -52,6 +52,8 @@ jobs:
       # fallback if needed; better to pass per-step when required
       NIX_PATH: nixpkgs=channel:nixos-24.11
       K3S_TOKEN: ${{ secrets.K3S_TOKEN }}  # export so builtins.getEnv can see it during evaluation
+    outputs:
+      k3s_token: ${{ steps.get_token.outputs.k3s_token }}
     steps:
       - uses: actions/checkout@v3
       - name: Cache Nix store (optional speedup)
@@ -75,15 +77,10 @@ jobs:
           ssh-keyscan -H "${{ needs.infrastructure.outputs.first_node_ip }}" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
       - name: Install NixOS remotely
-        env:
-          K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
         run: |
           set -euo pipefail
           IP=${{ needs.infrastructure.outputs.first_node_ip }}
           echo "Deploying to $IP"
-
-          export K3S_TOKEN="${{ secrets.K3S_TOKEN }}"
-          echo "${{ secrets.K3S_TOKEN }}" > ./k3s-token.txt
 
           nix run github:nix-community/nixos-anywhere -- \
             --flake './nix/main/nixos#prod-main' \
@@ -129,8 +126,6 @@ jobs:
           ' > token.txt
 
           TOKEN=$(tr -d '\n' < token.txt)
-          cat token.txt
-          echo "Token: $TOKEN"
           echo "k3s_token=$TOKEN" >> "$GITHUB_OUTPUT"
 
   deploy-secondary:
@@ -145,9 +140,6 @@ jobs:
         node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips) }}
     steps:
       - uses: actions/checkout@v3
-      - name: Debug received nodes_ips
-        run: |
-          echo "Internal IP: '${{ needs.infrastructure.outputs.first_node_internal_ip }}'"
       - name: Cache Nix store (optional speedup)
         uses: actions/cache@v4
         with:
@@ -201,6 +193,7 @@ jobs:
       - name: Connect agent to the main node
         run: |
           set -euo pipefail
+          echo "k3s_token='${{ needs.deploy-primary.outputs.k3s_token }}'"
           IP=${{ matrix.node_ip }}
           SERVER_IP=${{ needs.infrastructure.outputs.first_node_internal_ip }}
           ssh -i ~/.ssh/id_nixos_anywhere root@$IP \
