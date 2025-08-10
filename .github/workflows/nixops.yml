@@ -58,6 +58,21 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | ssh-add -
           # Create or update a NixOps deployment from the flake
           nixops create .#k3sHetzner -d k3sHetzner --no-restart-action || true
+      - name: Deploy NixOps
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+        run: |
+          eval "$(ssh-agent -s)"
+          echo "$SSH_PRIVATE_KEY" | ssh-add -
+          nixops deploy -d k3sHetzner --confirm
+      - name: Apply manifests (rendered by flake)
+        run: |
+          nix build .#traefikManifests .#cloudflaredManifests
+          mkdir -p /tmp/k8s-manifests
+          cp -r result*/* /tmp/k8s-manifests/
+          kubectl apply -f /tmp/k8s-manifests
+        env:
+          KUBECONFIG: /home/runner/.kube/config  
 
   # deploy-primary:
   #   name: Install NixOS/k3s on the main node
