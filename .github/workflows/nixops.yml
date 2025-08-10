@@ -56,7 +56,7 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
       - name: Install NixOps
-        run: nix profile add github:NixOS/nixpkgs/22.11#legacyPackages.x86_64-linux.nixops
+        run: nix profile add github:NixOS/nixpkgs/22.11#legacyPackages.x86_64-linux.nixops --impure
       - name: Create NixOps deployment (idempotent)
         env:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
