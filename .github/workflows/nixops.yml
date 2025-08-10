@@ -67,7 +67,7 @@ jobs:
           ssh-add /tmp/id_rsa
 
           # Create or update a NixOps deployment from the flake
-          nixops create .#k3sHetzner -d k3sHetzner --no-restart-action || true
+          nixops create --flake .#k3sHetzner -d k3sHetzner || true
       - name: Deploy NixOps
         env:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
@@ -78,7 +78,7 @@ jobs:
           ssh-add /tmp/id_rsa
 
           # Deploy
-          nixops deploy -d k3sHetzner --confirm
+          nixops deploy -d k3sHetzner --confirm --no-restart-action
       - name: Apply manifests (rendered by flake)
         run: |
           nix build .#traefikManifests .#cloudflaredManifests
