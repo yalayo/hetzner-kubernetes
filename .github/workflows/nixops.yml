@@ -36,7 +36,9 @@ jobs:
             FIRST_NODE_IP=$(terraform output -raw first_node_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
             FIRST_NODE_INTERNAL_IP=$(terraform output -raw first_node_internal_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
 
-            jq '{server: $FIRST_NODE_IP, workers: $NODES_IPS_JSON}' > terraform-output.json
+            cat > terraform-output.json <<EOF
+            {"server": "$FIRST_NODE_IP","workers": $NODES_IPS_JSON}
+            EOF
             
             # Export as job outputs
             echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
