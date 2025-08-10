@@ -49,6 +49,8 @@ jobs:
         run: |
           chmod +x scripts/make-nixops-network.sh
           scripts/make-nixops-network.sh terraform/terraform-output.json
+      - name: Install NixOps
+        run: nix profile install github:NixOS/nixops
       - name: Create NixOps deployment (idempotent)
         env:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
