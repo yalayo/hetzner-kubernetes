@@ -47,11 +47,17 @@ jobs:
             #echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
       - name: Make network.nix from terraform outputs
         run: |
-          cat terraform/terraform-output.json
           chmod +x scripts/make-nixops-network.sh
           scripts/make-nixops-network.sh terraform/terraform-output.json
-          ls -ls
-          cat network.nix
+      - name: Create NixOps deployment (idempotent)
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+        run: |
+          # Add the SSH private key to ssh-agent for nixops to use
+          eval "$(ssh-agent -s)"
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | ssh-add -
+          # Create or update a NixOps deployment from the flake
+          nixops create .#k3sHetzner -d k3sHetzner --no-restart-action || true
 
   # deploy-primary:
   #   name: Install NixOS/k3s on the main node
