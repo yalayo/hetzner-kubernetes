@@ -1,16 +1,25 @@
 { config, pkgs, lib, k3s ? { token = ""; }, ... }: # Accept k3s.token as flake arg
 
 let
-  # Path the token file will be copied to by `--extra-files`
-  tokenFilePath = "/k3s-token";
+  helmBinary = pkgs.helm;
+  # Helm chart versions can be fixed here or overridden
+  traefikChartVersion = "37.0.0"; 
+  cloudflaredChartVersion = "1.7.1"
 
-  # Try reading from /k3s-token if it exists
-  fileToken =
-    if builtins.pathExists tokenFilePath
-    then builtins.readFile tokenFilePath
-    else "";
-  # Try reading K3S_TOKEN from the evaluation environment; fall back to empty string if unset.
-  envToken = let t = builtins.tryEval (builtins.getEnv "K3S_TOKEN"); in if t.success then t.value else "";
+  # Helm install commands as scripts
+  installTraefik = ''
+    ${helmBinary}/bin/helm upgrade --install traefik traefik/traefik \
+      --namespace kube-system \
+      --set dashboard.enabled=true \
+      --set rbac.enabled=true \
+      --version ${traefikChartVersion}
+  '';
+
+  installCloudflared = ''
+    ${helmBinary}/bin/helm upgrade --install cloudflared cloudflare/cloudflared \
+      --namespace kube-system \
+      --version ${cloudflaredChartVersion}
+  '';
 in {
   options.k3s = {
     token = lib.mkOption {
@@ -25,7 +34,7 @@ in {
 
     services.openssh.enable = true;
 
-    environment.systemPackages = with pkgs; [ vim jq ];
+    environment.systemPackages = with pkgs; [ vim jq helm ];
 
     # Kernel modules
     boot.kernelModules = [
@@ -48,12 +57,10 @@ in {
     networking.firewall.allowedTCPPorts = [ 6443 80 443 ];
 
     # k3s service with dynamic flags
-    services.k3s = let
-      effectiveToken = lib.mkForce (if config.k3s.token != "" then config.k3s.token else fileToken);
-    in {
+    services.k3s = {
       enable = true;
       role = "server";
-      token = effectiveToken;
+      token = "placeholder";
       clusterInit = true;
       extraFlags = [
         "--tls-san=10.1.1.1"
@@ -67,5 +74,27 @@ in {
 
     # Hostname
     networking.hostName = "prod-main";
+  };
+
+  system.activationScripts.k3sHelmDeploy = {
+    text = ''
+      # Wait for k3s to be active (adjust if needed)
+      until kubectl get nodes &> /dev/null; do sleep 3; done
+
+      # Add Helm repos if not added
+      if ! ${helmBinary}/bin/helm repo list | grep traefik; then
+        ${helmBinary}/bin/helm repo add traefik https://helm.traefik.io/traefik
+      fi
+      if ! ${helmBinary}/bin/helm repo list | grep cloudflare; then
+        ${helmBinary}/bin/helm repo add cloudflare https://cloudflare.github.io/helm-charts
+      fi
+      ${helmBinary}/bin/helm repo update
+
+      # Install Traefik
+      ${installTraefik}
+
+      # Install Cloudflared
+      ${installCloudflared}
+    '';
   };
 }
