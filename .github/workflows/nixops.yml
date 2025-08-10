@@ -9,7 +9,8 @@ jobs:
   infrastructure:
     name: Create/Update sever
     runs-on: ubuntu-latest
-
+    env:
+      NIXPKGS_ALLOW_INSECURE: "1"
     outputs:
       nodes_ips: ${{ steps.terraform.outputs.nodes_ips }}
       first_node_ip: ${{ steps.terraform.outputs.first_node_ip }}
