@@ -4,7 +4,7 @@ let
   helmBinary = pkgs.helm;
   # Helm chart versions can be fixed here or overridden
   traefikChartVersion = "37.0.0"; 
-  cloudflaredChartVersion = "1.7.1"
+  cloudflaredChartVersion = "1.7.1";
 
   # Helm install commands as scripts
   installTraefik = ''
