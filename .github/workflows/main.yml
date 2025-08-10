@@ -82,6 +82,8 @@ jobs:
           IP=${{ needs.infrastructure.outputs.first_node_ip }}
           echo "Deploying to $IP"
 
+          export SSH_OPTS="-o ServerAliveInterval=60 -o ServerAliveCountMax=120"
+
           nix run github:nix-community/nixos-anywhere -- \
             --flake './nix/main/nixos#prod-main' \
             --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
@@ -165,6 +167,8 @@ jobs:
           set -euo pipefail
           IP=${{ matrix.node_ip }}
           echo "Deploying to $IP (cluster-init=${{ matrix.is_init }})"
+
+          export SSH_OPTS="-o ServerAliveInterval=60 -o ServerAliveCountMax=120"
 
           # Add later --k3s-extra-args "${EXTRA_FLAGS}" \
           nix run github:nix-community/nixos-anywhere -- \
