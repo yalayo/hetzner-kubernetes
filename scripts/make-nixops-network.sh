@@ -7,8 +7,8 @@ out=network.nix
 
 jq -r '
   {
-    server: .first_node_ip,
-    workers: .nodes_ips
+    server: .first_node_ip.value,
+    workers: .nodes_ips.value
   }' "$infile" > /tmp/inventory.json
 
 SERVER_IP=$(jq -r .server /tmp/inventory.json)
