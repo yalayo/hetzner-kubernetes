@@ -55,7 +55,7 @@ jobs:
         run: |
           # Add the SSH private key to ssh-agent for nixops to use
           eval "$(ssh-agent -s)"
-          echo "$SSH_PRIVATE_KEY" > /tmp/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/id_rsa
           chmod 600 /tmp/id_rsa
           ssh-add /tmp/id_rsa
 
@@ -66,7 +66,7 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           eval "$(ssh-agent -s)"
-          echo "$SSH_PRIVATE_KEY" > /tmp/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/id_rsa
           chmod 600 /tmp/id_rsa
           ssh-add /tmp/id_rsa
 
