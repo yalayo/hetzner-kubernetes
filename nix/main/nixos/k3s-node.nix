@@ -68,33 +68,33 @@ in {
       ];
     };
 
+    system.activationScripts.k3sHelmDeploy = {
+      text = ''
+        # Wait for k3s to be active (adjust if needed)
+        until kubectl get nodes &> /dev/null; do sleep 3; done
+
+        # Add Helm repos if not added
+        if ! ${helmBinary}/bin/helm repo list | grep traefik; then
+          ${helmBinary}/bin/helm repo add traefik https://helm.traefik.io/traefik
+        fi
+        if ! ${helmBinary}/bin/helm repo list | grep cloudflare; then
+          ${helmBinary}/bin/helm repo add cloudflare https://cloudflare.github.io/helm-charts
+        fi
+        ${helmBinary}/bin/helm repo update
+
+        # Install Traefik
+        ${installTraefik}
+
+        # Install Cloudflared
+        ${installCloudflared}
+      '';
+    };
+
     # Time
     time.timeZone = "UTC";
     services.timesyncd.enable = true;
 
     # Hostname
     networking.hostName = "prod-main";
-  };
-
-  system.activationScripts.k3sHelmDeploy = {
-    text = ''
-      # Wait for k3s to be active (adjust if needed)
-      until kubectl get nodes &> /dev/null; do sleep 3; done
-
-      # Add Helm repos if not added
-      if ! ${helmBinary}/bin/helm repo list | grep traefik; then
-        ${helmBinary}/bin/helm repo add traefik https://helm.traefik.io/traefik
-      fi
-      if ! ${helmBinary}/bin/helm repo list | grep cloudflare; then
-        ${helmBinary}/bin/helm repo add cloudflare https://cloudflare.github.io/helm-charts
-      fi
-      ${helmBinary}/bin/helm repo update
-
-      # Install Traefik
-      ${installTraefik}
-
-      # Install Cloudflared
-      ${installCloudflared}
-    '';
   };
 }
