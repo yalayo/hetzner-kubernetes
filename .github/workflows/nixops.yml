@@ -55,7 +55,10 @@ jobs:
         run: |
           # Add the SSH private key to ssh-agent for nixops to use
           eval "$(ssh-agent -s)"
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | ssh-add -
+          echo "$SSH_PRIVATE_KEY" > /tmp/id_rsa
+          chmod 600 /tmp/id_rsa
+          ssh-add /tmp/id_rsa
+
           # Create or update a NixOps deployment from the flake
           nixops create .#k3sHetzner -d k3sHetzner --no-restart-action || true
       - name: Deploy NixOps
@@ -63,7 +66,11 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
         run: |
           eval "$(ssh-agent -s)"
-          echo "$SSH_PRIVATE_KEY" | ssh-add -
+          echo "$SSH_PRIVATE_KEY" > /tmp/id_rsa
+          chmod 600 /tmp/id_rsa
+          ssh-add /tmp/id_rsa
+
+          # Deploy
           nixops deploy -d k3sHetzner --confirm
       - name: Apply manifests (rendered by flake)
         run: |
