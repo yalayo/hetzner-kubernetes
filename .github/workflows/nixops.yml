@@ -55,7 +55,7 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
       - name: Install NixOps
-        run: nix profile install github:NixOS/nixops
+        run: nix profile install nixpkgs#nixops
       - name: Create NixOps deployment (idempotent)
         env:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
@@ -78,7 +78,7 @@ jobs:
           ssh-add /tmp/id_rsa
 
           # Deploy
-          nixops deploy -d k3sHetzner --confirm --no-restart-action
+          nixops deploy -d k3sHetzner --confirm
       - name: Apply manifests (rendered by flake)
         run: |
           nix build .#traefikManifests .#cloudflaredManifests
