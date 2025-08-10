@@ -1,0 +1,207 @@
+name: Cluster
+
+on:
+  push:
+    branches: [ master ]
+  #workflow_dispatch:
+
+jobs:
+  infrastructure:
+    name: Create/Update sever
+    runs-on: ubuntu-latest
+
+    outputs:
+      nodes_ips: ${{ steps.terraform.outputs.nodes_ips }}
+      first_node_ip: ${{ steps.terraform.outputs.first_node_ip }}
+      first_node_internal_ip: ${{ steps.terraform.outputs.first_node_internal_ip }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - name: Deploy with Terraform
+        id: terraform
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
+        run: |
+            cd ./terraform
+            terraform init
+            terraform apply -auto-approve
+            terraform output -json > terraform-output.json
+
+            # Extract JSON array from mixed output
+            NODES_IPS_JSON=$(terraform output -json nodes_ips 2>/dev/null | grep -oP '\[(?:"[^"]*",?)+\]' | head -n1)
+            FIRST_NODE_IP=$(terraform output -raw first_node_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
+            FIRST_NODE_INTERNAL_IP=$(terraform output -raw first_node_internal_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
+
+            echo $FIRST_NODE_IP
+            # Export as job outputs
+            echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
+            echo "first_node_ip=$FIRST_NODE_IP" >> "$GITHUB_OUTPUT"
+            echo "first_node_internal_ip=$FIRST_NODE_INTERNAL_IP" >> "$GITHUB_OUTPUT"
+            #echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+      - name: Make network.nix from terraform outputs
+        run: |
+          chmod +x scripts/make-nixops-network.sh
+          scripts/make-nixops-network.sh terraform/terraform-output.json
+          ls -ls
+          cat network.nix
+
+  # deploy-primary:
+  #   name: Install NixOS/k3s on the main node
+  #   needs: infrastructure
+  #   #if: needs.infrastructure.outputs.changed == 'true'
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     # fallback if needed; better to pass per-step when required
+  #     NIX_PATH: nixpkgs=channel:nixos-24.11
+  #     K3S_TOKEN: ${{ secrets.K3S_TOKEN }}  # export so builtins.getEnv can see it during evaluation
+  #   outputs:
+  #     k3s_token: ${{ steps.get_token.outputs.k3s_token }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Cache Nix store (optional speedup)
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: /nix/store
+  #         key: nix-store-${{ runner.os }}-${{ github.sha }}
+  #         # note: caching /nix/store can be huge; adjust strategy if too large
+  #     - name: Install Nix
+  #       uses: DeterminateSystems/nix-installer-action@v10
+  #       with:
+  #         extra_nix_config: |
+  #           experimental-features = nix-command flakes
+  #     - name: Prepare SSH key and config
+  #       run: |
+  #         set -euo pipefail
+  #         mkdir -p ~/.ssh
+  #         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_nixos_anywhere
+  #         chmod 600 ~/.ssh/id_nixos_anywhere
+
+  #         ssh-keyscan -H "${{ needs.infrastructure.outputs.first_node_ip }}" >> ~/.ssh/known_hosts
+  #         chmod 600 ~/.ssh/known_hosts
+  #     - name: Install NixOS remotely
+  #       run: |
+  #         set -euo pipefail
+  #         IP=${{ needs.infrastructure.outputs.first_node_ip }}
+  #         echo "Deploying to $IP"
+
+  #         nix run github:nix-community/nixos-anywhere -- \
+  #           --flake './nix/main/nixos#prod-main' \
+  #           --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
+  #           --extra-files ./nix/main \
+  #           --build-on remote \
+  #           --no-root-password \
+  #           --debug \
+  #           --target-host "root@$IP" \
+  #           -i ~/.ssh/id_nixos_anywhere
+  #     - name: Refresh SSH host key for main node
+  #       run: |
+  #         IP=${{ needs.infrastructure.outputs.first_node_ip }}
+  #         ssh-keygen -R "$IP" >/dev/null 2>&1 || true
+          
+  #         # Retry ssh-keyscan up to 5 times
+  #         for i in {1..5}; do
+  #           ssh-keyscan -H "$IP" >> ~/.ssh/known_hosts 2>/dev/null && break
+  #           echo "[$i/5] Host $IP not ready, retrying in 5s..."
+  #           sleep 5
+  #         done
+
+  #         chmod 600 ~/.ssh/known_hosts
+  #     - name: Get k3s token from main node
+  #       id: get_token
+  #       run: |
+  #         set -euo pipefail
+  #         IP=${{ needs.infrastructure.outputs.first_node_ip }}
+
+  #         echo "Waiting for k3s token on $IP..."
+  #         ssh -i ~/.ssh/id_nixos_anywhere root@$IP '
+  #           for i in {1..30}; do
+  #             if [ -f /var/lib/rancher/k3s/server/node-token ]; then
+  #               cat /var/lib/rancher/k3s/server/node-token
+  #               exit 0
+  #             fi
+  #             echo "[$i/30] Token file not ready, retrying in 5s..."
+  #             sleep 5
+  #           done
+  #           echo "Timed out waiting for k3s token" >&2
+  #           exit 1
+  #         ' > token.txt
+
+  #         TOKEN=$(tr -d '\n' < token.txt)
+  #         echo "k3s_token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+  # deploy-secondary:
+  #   name: Install NixOS/k3s on secodary nodes in parallel
+  #   needs: [infrastructure, deploy-primary]
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     # fallback if needed; better to pass per-step when required
+  #     NIX_PATH: nixpkgs=channel:nixos-24.11
+  #   strategy:
+  #     matrix:
+  #       node_ip: ${{ fromJson(needs.infrastructure.outputs.nodes_ips) }}
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Cache Nix store (optional speedup)
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: /nix/store
+  #         key: nix-store-${{ runner.os }}-${{ github.sha }}
+  #         # note: caching /nix/store can be huge; adjust strategy if too large
+  #     - name: Install Nix
+  #       uses: DeterminateSystems/nix-installer-action@v10
+  #       with:
+  #         extra_nix_config: |
+  #           experimental-features = nix-command flakes
+  #     - name: Prepare SSH key and config
+  #       run: |
+  #         set -euo pipefail
+  #         mkdir -p ~/.ssh
+  #         echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_nixos_anywhere
+  #         chmod 600 ~/.ssh/id_nixos_anywhere
+
+  #         ssh-keyscan -H "${{ matrix.node_ip }}" >> ~/.ssh/known_hosts
+  #         chmod 600 ~/.ssh/known_hosts
+
+  #     - name: Install NixOS remotely
+  #       run: |
+  #         set -euo pipefail
+  #         IP=${{ matrix.node_ip }}
+  #         echo "Deploying to $IP (cluster-init=${{ matrix.is_init }})"
+
+  #         # Add later --k3s-extra-args "${EXTRA_FLAGS}" \
+  #         nix run github:nix-community/nixos-anywhere -- \
+  #           --flake './nix/secondary/nixos#prod-secondary' \
+  #           --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
+  #           --option k3s.token ${{ secrets.K3S_TOKEN }} \
+  #           --extra-files ./nix/secondary \
+  #           --build-on remote \
+  #           --no-root-password \
+  #           --target-host "root@$IP" \
+  #           -i ~/.ssh/id_nixos_anywhere
+  #     - name: Refresh SSH host key for secondary node
+  #       run: |
+  #         IP=${{ matrix.node_ip }}
+  #         ssh-keygen -R "$IP" >/dev/null 2>&1 || true
+          
+  #         # Retry ssh-keyscan up to 5 times
+  #         for i in {1..5}; do
+  #           ssh-keyscan -H "$IP" >> ~/.ssh/known_hosts 2>/dev/null && break
+  #           echo "[$i/5] Host $IP not ready, retrying in 5s..."
+  #           sleep 5
+  #         done
+
+  #         chmod 600 ~/.ssh/known_hosts
+  #     - name: Connect agent to the main node
+  #       run: |
+  #         set -euo pipefail
+  #         TOKEN='${{ needs.deploy-primary.outputs.k3s_token }}'
+  #         IP=${{ matrix.node_ip }}
+  #         SERVER_IP=${{ needs.infrastructure.outputs.first_node_internal_ip }}
+  #         ssh -i ~/.ssh/id_nixos_anywhere root@$IP "
+  #           nohup k3s agent --server https://$SERVER_IP:6443 --token \"$TOKEN\" > /var/log/k3s-agent.log 2>&1 &
+  #         "
