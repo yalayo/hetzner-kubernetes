@@ -55,6 +55,7 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+      # I have to continue to research how to install nixops correctly or nixops 4
       - name: Install NixOps
         run: nix profile add github:NixOS/nixops/nixops-1.8.3 --impure
       - name: Create NixOps deployment (idempotent)
