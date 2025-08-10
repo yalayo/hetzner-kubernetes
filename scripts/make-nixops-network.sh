@@ -5,17 +5,12 @@ set -euo pipefail
 infile=${1:-terraform/terraform-output.json}
 out=network.nix
 
-# Extract and normalize values regardless of whether they are wrapped in .value
-jq -r '
-  {
-    server: (if .first_node_ip.value? then .first_node_ip.value else .first_node_ip end),
-    workers: (if .nodes_ips.value? then .nodes_ips.value else .nodes_ips end)
-  }' "$infile" > /tmp/inventory.json
+jq '.' "$infile" > /tmp/inventory.json
 
 SERVER_IP=$(jq -r .server /tmp/inventory.json)
 WORKER_IPS=$(jq -r '.workers | @sh' /tmp/inventory.json)
 
-cat > "$out" <<EOF
+cat > $out <<EOF
 { config, pkgs, lib, ... }:
 
 let
@@ -42,10 +37,10 @@ in {
 # workers
 EOF
 
-# Append worker definitions
+# append worker definitions
 i=1
 for ip in $(jq -r '.workers[]' /tmp/inventory.json); do
-  cat >> "$out" <<EOF
+  cat >> $out <<EOF
 
 prod-worker-${i} = { config, pkgs, ... }: {
   networking.hostName = "prod-worker-${i}";
