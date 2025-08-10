@@ -45,6 +45,7 @@ jobs:
             #echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
       - name: Make network.nix from terraform outputs
         run: |
+          cat terraform/terraform-output.json
           chmod +x scripts/make-nixops-network.sh
           scripts/make-nixops-network.sh terraform/terraform-output.json
           ls -ls
