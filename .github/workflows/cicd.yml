@@ -46,6 +46,7 @@ jobs:
             CICD_IP=$(terraform output -raw cicd_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
 
             # Export as job outputs
+            echo "Server Ip: $CICD_IP"
             echo "cicd_ip=$CICD_IP" >> "$GITHUB_OUTPUT"
       - name: Prepare SSH key and config
         run: |
