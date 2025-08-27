@@ -1,0 +1,75 @@
+name: Infrastructure
+
+on:
+  push:
+    branches: [ master ]
+  #workflow_dispatch:
+
+jobs:
+  infrastructure:
+    name: Create/Update sever
+    runs-on: ubuntu-latest
+
+    outputs:
+      nodes_ips: ${{ steps.terraform.outputs.nodes_ips }}
+      first_node_ip: ${{ steps.terraform.outputs.first_node_ip }}
+      first_node_internal_ip: ${{ steps.terraform.outputs.first_node_internal_ip }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - name: Cache Nix store (optional speedup)
+        uses: actions/cache@v4
+        with:
+          path: /nix/store
+          key: nix-store-${{ runner.os }}-${{ github.sha }}
+          # note: caching /nix/store can be huge; adjust strategy if too large
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v10
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - name: Deploy with Terraform
+        id: terraform
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
+        run: |
+            cd ./terraform
+            terraform init
+            terraform apply -target hcloud_server.cicd -auto-approve
+
+            # Extract JSON array from mixed output
+            CICD_IP=$(terraform output -raw cicd_ip 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1)
+
+            # Export as job outputs
+            echo "nodes_ips=$NODES_IPS_JSON" >> "$GITHUB_OUTPUT"
+      - name: Prepare SSH key and config
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_nixos_anywhere
+          chmod 600 ~/.ssh/id_nixos_anywhere
+
+          ssh-keyscan -H "${{ steps.infrastructure.outputs.cicd_ip }}" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Install NixOS remotely
+        run: |
+          set -euo pipefail
+          IP=${{ steps.infrastructure.outputs.cicd_ip }}
+          echo "Deploying to $IP"
+
+          export SSH_OPTS="-o ServerAliveInterval=60 -o ServerAliveCountMax=120"
+
+          nix run github:nix-community/nixos-anywhere -- \
+            --flake './nix/cicd/etc/nixos#cicd' \
+            --generate-hardware-config nixos-generate-config ./hardware-configuration.nix \
+            --extra-files ./nix/cicd \
+            --build-on remote \
+            --no-root-password \
+            --debug \
+            --target-host "root@$IP" \
+            -i ~/.ssh/id_nixos_anywhere
