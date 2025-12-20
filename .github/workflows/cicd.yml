@@ -60,9 +60,9 @@ jobs:
           #' plan.json)
 
           ls -lh plan.json
-          head -c 1 plan.json | cat -A
-          jq empty plan.json
-          #jq '.resource_changes | length' plan.json
+          cat plan.json
+          #jq empty plan.json
+          jq '.resource_changes | length' plan.json
 
           echo "Plan JSON"
           jq '[.resource_changes[] | select(.change.actions | any(. != "no-op"))]' plan.json
