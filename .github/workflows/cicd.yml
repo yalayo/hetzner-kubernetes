@@ -45,9 +45,7 @@ jobs:
           terraform init
           terraform plan -target hcloud_server.cicd -out=tfplan
           terraform show -no-color tfplan > plan.txt
-          # CLEAN JSON extraction (Terraform Cloud safe)
-          terraform show -json tfplan #| jq '.' > plan.json
-          #sed -n '1,200p' plan.json
+          terraform show -json tfplan > plan.json
 
       - name: Detect Terraform changes
         id: detect
@@ -55,7 +53,11 @@ jobs:
           set -euo pipefail
           cd terraform
 
-          CHANGES=$(jq '.resource_changes | length' plan.json)
+          CHANGES=$(jq '
+            [.resource_changes[]
+            | select(.change.actions | any(. != "no-op"))
+            ] | length
+          ' plan.json)
 
           if [ "$CHANGES" -gt 0 ]; then
             echo "Changes detected: $CHANGES"
@@ -81,7 +83,7 @@ jobs:
     needs: terraform-plan
 
     # Correct gating condition
-    if: needs.terraform-plan.outputs.has_changes == 'true'
+    if: needs.terraform-plan.outputs.plan_has_changes == 'true'
 
     # This guarantees the job WAITS for approval
     environment:
