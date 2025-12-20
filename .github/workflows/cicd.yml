@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      plan_has_changes: ${{ steps.plan.outputs.has_changes }}
+      plan_has_changes: ${{ steps.detect.outputs.has_changes }}
 
     steps:
       - uses: actions/checkout@v3
@@ -35,7 +35,6 @@ jobs:
             experimental-features = nix-command flakes
 
       - name: Terraform Init & Plan
-        id: plan
         env:
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -44,36 +43,35 @@ jobs:
           set -euo pipefail
           cd terraform
           terraform init
+          terraform plan -target hcloud_server.cicd -out=tfplan
+          terraform show -no-color tfplan > plan.txt
+          terraform show -json tfplan > plan.json
 
-          set +e
-          terraform plan \
-            -target hcloud_server.cicd \
-            -detailed-exitcode \
-            -out=tfplan
-          EXIT_CODE=$?
-          set -e
+      - name: Detect Terraform changes (HCP-safe)
+        id: detect
+        run: |
+          set -euo pipefail
+          cd terraform
 
-          terraform show -no-color tfplan > plan.txt || true
+          CHANGES=$(jq '.resource_changes | length' plan.json)
 
-          if [ "$EXIT_CODE" -eq 2 ]; then
-            echo "Changes detected"
+          if [ "$CHANGES" -gt 0 ]; then
+            echo "Changes detected: $CHANGES"
             echo "has_changes=true" >> "$GITHUB_OUTPUT"
-          elif [ "$EXIT_CODE" -eq 0 ]; then
+          else
             echo "No changes detected"
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "Terraform plan failed"
-            exit 1
           fi
 
       - name: Upload Terraform plan
-        if: steps.plan.outputs.has_changes == 'true'
+        if: steps.detect.outputs.has_changes == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
           path: |
             terraform/tfplan
             terraform/plan.txt
+            terraform/plan.json
 
   terraform-apply:
     name: Terraform Apply (manual approval)
@@ -81,7 +79,7 @@ jobs:
     needs: terraform-plan
 
     # Correct gating condition
-    if: needs.terraform-plan.outputs.plan_has_changes == 'true'
+    if: needs.terraform-plan.outputs.has_changes == 'true'
 
     # This guarantees the job WAITS for approval
     environment:
