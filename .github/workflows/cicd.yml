@@ -60,11 +60,7 @@ jobs:
           #' plan.json)
 
           echo "Plan JSON"
-          jq '
-            [.resource_changes[]
-            | select(.change.actions | any(. != "no-op"))
-            ]
-          ' plan.json
+          jq '[.resource_changes[] | select(.change.actions | any(. != "no-op"))]' plan.json
 
           if [ "$CHANGES" -gt 0 ]; then
             echo "Changes detected: $CHANGES"
