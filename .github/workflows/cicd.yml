@@ -46,8 +46,8 @@ jobs:
           terraform plan -target hcloud_server.cicd -out=tfplan
           terraform show -no-color tfplan > plan.txt
           # CLEAN JSON extraction (Terraform Cloud safe)
-          terraform show -json tfplan | jq '.' > plan.json
-          sed -n '1,200p' plan.json
+          terraform show -json tfplan #| jq '.' > plan.json
+          #sed -n '1,200p' plan.json
 
       - name: Detect Terraform changes
         id: detect
