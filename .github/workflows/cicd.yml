@@ -53,11 +53,14 @@ jobs:
           set -euo pipefail
           cd terraform
 
-          CHANGES=$(jq '
-            [.resource_changes[]
-            | select(.change.actions | any(. != "no-op"))
-            ] | length
-          ' plan.json)
+          #CHANGES=$(jq '
+          #  [.resource_changes[]
+          #  | select(.change.actions | any(. != "no-op"))
+          #  ] | length
+          #' plan.json)
+
+          echo "Plan JSON"
+          cat plan.json 
 
           if [ "$CHANGES" -gt 0 ]; then
             echo "Changes detected: $CHANGES"
