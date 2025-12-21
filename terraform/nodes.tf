@@ -33,6 +33,6 @@ output "k3s_nodes" {
   description = "Map of node names to private IPs"
   value = {
     for idx, server in hcloud_server.node :
-    "node-${idx + 1}" => element(server.network, 0).ip
+    "node-${idx + 1}" => tolist(server.network)[0].ip
   }
 }
