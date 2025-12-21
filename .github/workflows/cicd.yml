@@ -145,7 +145,7 @@ jobs:
               }
               if (started) print ""
             }
-            ' | jq -e 'type=="object"' > ../terraform.json
+            ' > ../terraform.json
 
       - name: Upload terraform.json for Colmena
         uses: actions/upload-artifact@v4
