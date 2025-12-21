@@ -108,14 +108,66 @@ jobs:
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
+      - name: Download approved plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: terraform
+      
+      - name: Deploy with Terraform
+        id: apply
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          TF_VAR_k3s_token: ${{ secrets.K3S_TOKEN }}
+        run: |
+            cd ./terraform
+            terraform init
+
+            terraform apply -auto-approve
+            terraform output -json k3s_nodes | jq -e 'type=="object"' > ../terraform.json
+
+      - name: Upload terraform.json for Colmena
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-json
+          path: terraform.json
+
+
+  colmena-apply:
+    name: Colmena Apply (Configure k3s)
+    runs-on: ubuntu-latest
+    needs: terraform-apply
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download terraform.json
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-json
+          path: k3s-colmena
+
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v10
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Download approved plan
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-plan
-          path: terraform
+      - name: Install Colmena
+        run: |
+          nix profile install nixpkgs#colmena
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $(terraform output -raw all_ips || true) >> ~/.ssh/known_hosts
+
+      - name: Colmena apply
+        env:
+          K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
+        run: |
+          cd k3s-colmena
+          colmena apply --on @all
