@@ -1,5 +1,5 @@
 ## CICD server
-resource "hcloud_server" "cicd" {
+/* resource "hcloud_server" "cicd" {
   name        = "cicd"
   image       = "ubuntu-24.04"
   location    = "nbg1"
@@ -26,4 +26,4 @@ resource "hcloud_server" "cicd" {
 output "cicd_ip" {
   value = hcloud_server.cicd.ipv4_address
   description = "Ip of the cicd server"
-}
+} */

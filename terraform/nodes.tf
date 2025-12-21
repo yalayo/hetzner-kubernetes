@@ -1,5 +1,5 @@
 ## Secondary nodes
-resource "hcloud_server" "secondary" { 
+resource "hcloud_server" "node" { 
   count       = 1
   name        = "prod-node-${count.index+1}"
   image       = "ubuntu-24.04"
@@ -16,7 +16,7 @@ resource "hcloud_server" "secondary" {
 
   network {
     network_id = hcloud_network.network.id
-    ip = "10.1.1.${count.index+2}"
+    ip = "10.1.1.${count.index+1}"
   }
 
   depends_on = [
@@ -24,7 +24,7 @@ resource "hcloud_server" "secondary" {
   ]
 }
 
-output "secondary_ips" {
-  value = hcloud_server.secondary.*.ipv4_address
-  description = "List of public IPv4 addresses of the secondary nodes"
+output "nodes_ips" {
+  value = hcloud_server.node.*.ipv4_address
+  description = "List of public IPv4 addresses of the nodes"
 }
