@@ -125,6 +125,29 @@ jobs:
             terraform init
 
             terraform apply -target hcloud_server.node -auto-approve
+
+            terraform output -json nodes_ips | awk '
+            BEGIN { depth=0; started=0 }
+            {
+              for (i=1; i<=length($0); i++) {
+                c=substr($0,i,1)
+                if (c=="{") {
+                  depth++
+                  started=1
+                }
+                if (started) printf "%s", c
+                if (c=="}") {
+                  depth--
+                  if (started && depth==0) {
+                    print ""
+                    exit
+                  }
+                }
+              }
+              if (started) print ""
+            }
+            ' > ../nodes.json
+
             terraform output -json k3s_nodes | awk '
             BEGIN { depth=0; started=0 }
             {
@@ -147,11 +170,13 @@ jobs:
             }
             ' > ../terraform.json
 
-      - name: Upload terraform.json for Colmena
+      - name: Upload artefact for Colmena
         uses: actions/upload-artifact@v4
         with:
-          name: terraform-json
-          path: terraform.json
+          name: terraform-data
+          path: |
+            terraform.json
+            nodes.json
 
 
   colmena-apply:
@@ -165,7 +190,7 @@ jobs:
       - name: Download terraform.json
         uses: actions/download-artifact@v4
         with:
-          name: terraform-json
+          name: terraform-data
           path: k3s-colmena
 
       - name: Install Nix
@@ -183,7 +208,13 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $(terraform output -raw all_ips || true) >> ~/.ssh/known_hosts
+          
+          # Extract IPs from nodes.json
+          NODES=$(jq -r '.nodes_ips.value | .[]' k3s-colmena/nodes.json)
+
+          for ip in $NODES; do
+            ssh-keyscan -H "$ip" >> ~/.ssh/known_hosts
+          done
 
       - name: Colmena apply
         env:

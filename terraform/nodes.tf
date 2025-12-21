@@ -25,8 +25,11 @@ resource "hcloud_server" "node" {
 }
 
 output "nodes_ips" {
-  value = hcloud_server.node.*.ipv4_address
   description = "List of public IPv4 addresses of the nodes"
+  value = {
+    for idx, server in hcloud_server.node :
+    "node-${idx + 1}" => server.ipv4_address
+  }
 }
 
 output "k3s_nodes" {
