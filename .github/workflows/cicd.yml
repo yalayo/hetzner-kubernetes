@@ -100,6 +100,20 @@ jobs:
             terraform/plan.txt
             terraform/plan.json
 
+      - name: 🧾 Terraform plan (job summary)
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          {
+            echo "## Terraform Plan"
+            echo ""
+            echo "**Summary:** $(grep '^Plan:' terraform/plan.txt)"
+            echo ""
+            echo '```'
+            cat terraform/plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+
   terraform-apply:
     name: Terraform Apply (manual approval)
     runs-on: ubuntu-latest
@@ -131,13 +145,3 @@ jobs:
         with:
           name: terraform-plan
           path: terraform
-
-      - name: 🧾 Add Terraform plan to job summary
-        run: |
-          {
-            echo "## Terraform Plan"
-            echo ""
-            echo '```'
-            cat terraform/plan.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
