@@ -28,3 +28,11 @@ output "nodes_ips" {
   value = hcloud_server.node.*.ipv4_address
   description = "List of public IPv4 addresses of the nodes"
 }
+
+output "k3s_nodes" {
+  description = "Map of node names to private IPs"
+  value = {
+    for idx, server in hcloud_server.node :
+    "node-${idx + 1}" => server.network[0].ip
+  }
+}
