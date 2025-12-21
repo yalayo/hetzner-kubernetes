@@ -125,7 +125,27 @@ jobs:
             terraform init
 
             terraform apply -target hcloud_server.node -auto-approve
-            terraform output -json k3s_nodes | jq -e 'type=="object"' > ../terraform.json
+            terraform output -json k3s_nodes | awk '
+            BEGIN { depth=0; started=0 }
+            {
+              for (i=1; i<=length($0); i++) {
+                c=substr($0,i,1)
+                if (c=="{") {
+                  depth++
+                  started=1
+                }
+                if (started) printf "%s", c
+                if (c=="}") {
+                  depth--
+                  if (started && depth==0) {
+                    print ""
+                    exit
+                  }
+                }
+              }
+              if (started) print ""
+            }
+            ' | jq -e 'type=="object"' > ../terraform.json
 
       - name: Upload terraform.json for Colmena
         uses: actions/upload-artifact@v4
