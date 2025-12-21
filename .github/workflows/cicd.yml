@@ -1,4 +1,4 @@
-name: Infrastructure
+name: Kubernetes Cluster - production
 
 on:
   #push:
