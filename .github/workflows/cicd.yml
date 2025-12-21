@@ -45,7 +45,7 @@ jobs:
           terraform init
           terraform plan -target hcloud_server.cicd -out=tfplan
           terraform show -no-color tfplan > plan.txt
-          terraform show -json tfplan > plan.json
+          terraform show -json tfplan | sed -n '/^{/,$p' | jq '.' > plan.json
 
       - name: Detect Terraform changes
         id: detect
@@ -53,19 +53,12 @@ jobs:
           set -euo pipefail
           cd terraform
 
-          #CHANGES=$(jq '
-          #  [.resource_changes[]
-          #  | select(.change.actions | any(. != "no-op"))
-          #  ] | length
-          #' plan.json)
-
-          ls -lh plan.json
           cat plan.json
           #jq empty plan.json
           jq '.resource_changes | length' plan.json
 
           echo "Plan JSON"
-          jq '[.resource_changes[] | select(.change.actions | any(. != "no-op"))]' plan.json
+          CHANGES=$(jq '[.resource_changes[] | select(.change.actions | any(. != "no-op"))] | length' plan.json)
 
           if [ "$CHANGES" -gt 0 ]; then
             echo "Changes detected: $CHANGES"
