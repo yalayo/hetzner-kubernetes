@@ -132,5 +132,12 @@ jobs:
           name: terraform-plan
           path: terraform
 
-      - name: Show approved plan
-        run: cat terraform/plan.txt
+      - name: 🧾 Add Terraform plan to job summary
+        run: |
+          {
+            echo "## Terraform Plan"
+            echo ""
+            echo '```'
+            cat terraform/plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
