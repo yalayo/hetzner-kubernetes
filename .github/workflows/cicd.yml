@@ -43,7 +43,7 @@ jobs:
           set -euo pipefail
           cd terraform
           terraform init
-          terraform plan -target hcloud_server.cicd -out=tfplan
+          terraform plan -target hcloud_server.node -out=tfplan
           terraform show -no-color tfplan > plan.txt
 
       - name: Detect Terraform changes (from plan.txt)
@@ -124,7 +124,7 @@ jobs:
             cd ./terraform
             terraform init
 
-            terraform apply -auto-approve
+            terraform apply -target hcloud_server.node -auto-approve
             terraform output -json k3s_nodes | jq -e 'type=="object"' > ../terraform.json
 
       - name: Upload terraform.json for Colmena
