@@ -210,7 +210,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           
           # Extract IPs from nodes.json
-          NODES=$(jq -r '.nodes_ips.value | .[]' k3s-colmena/nodes.json)
+          NODES=$(jq -r 'to_entries[] | .value' k3s-colmena/nodes.json)
 
           for ip in $NODES; do
             ssh-keyscan -H "$ip" >> ~/.ssh/known_hosts
