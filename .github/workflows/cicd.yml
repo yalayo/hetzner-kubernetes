@@ -221,6 +221,4 @@ jobs:
           K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
         run: |
           cd k3s-colmena
-          ls -l
-          cat terraform.json
-          colmena apply --on @all
+          colmena apply --impure --flake path:. --on @all
