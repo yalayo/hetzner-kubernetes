@@ -219,6 +219,7 @@ jobs:
       - name: Colmena apply
         env:
           K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
+          COLMENA_NO_GIT: "1"
         run: |
           cd k3s-colmena
           colmena apply --impure --on @all
