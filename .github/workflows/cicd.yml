@@ -221,4 +221,4 @@ jobs:
           K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
         run: |
           cd k3s-colmena
-          colmena apply --impure --no-git --on @all
+          colmena apply --impure --on @all .
