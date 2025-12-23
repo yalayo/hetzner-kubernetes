@@ -222,4 +222,5 @@ jobs:
         run: |
           cd k3s-colmena
           ls -l
+          cat terraform.json
           colmena apply --on @all
