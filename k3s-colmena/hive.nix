@@ -10,6 +10,4 @@ let
     imports = [ ./node.nix ];
   };
 in
-{
-  nodes = builtins.mapAttrs mkNode nodes;
-}
+builtins.mapAttrs mkNode nodes
