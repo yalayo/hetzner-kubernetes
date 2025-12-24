@@ -225,8 +225,4 @@ jobs:
           K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
         run: |
           cd k3s-colmena
-          echo "Hive generated:"
-          nix-instantiate --eval --expr 'import ./hive.nix'
-          echo "Hosts:"
-          colmena query --config ./flake.nix
-          colmena apply --impure --config ./flake.nix --on @all
+          colmena apply --impure --config . --on @all
