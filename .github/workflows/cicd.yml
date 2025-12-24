@@ -92,11 +92,8 @@ jobs:
     name: Terraform Apply (manual approval)
     runs-on: ubuntu-latest
     needs: terraform-plan
-
-    # Correct gating condition
     if: needs.terraform-plan.outputs.plan_has_changes == 'true'
 
-    # This guarantees the job WAITS for approval
     environment:
       name: infra-approval
 
@@ -113,9 +110,8 @@ jobs:
         with:
           name: terraform-plan
           path: terraform
-      
-      - name: Deploy with Terraform
-        id: apply
+
+      - name: Terraform Apply & Outputs
         env:
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
           TF_VAR_ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -170,14 +166,13 @@ jobs:
             }
             ' > ../terraform.json
 
-      - name: Upload artefact for Colmena
+      - name: Upload Terraform outputs
         uses: actions/upload-artifact@v4
         with:
           name: terraform-data
           path: |
             terraform.json
             nodes.json
-
 
   colmena-apply:
     name: Colmena Apply (Configure k3s)
@@ -187,11 +182,23 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Download terraform.json
+      - name: Download Terraform outputs
         uses: actions/download-artifact@v4
         with:
           name: terraform-data
           path: k3s-colmena
+
+      # 🔑 THIS IS THE FIX
+      - name: Commit terraform.json for Colmena
+        run: |
+          set -e
+          cd k3s-colmena
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add terraform.json nodes.json
+          git commit -m "ci: update terraform outputs for colmena" || echo "Nothing to commit"
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v10
@@ -200,19 +207,15 @@ jobs:
             experimental-features = nix-command flakes
 
       - name: Install Colmena
-        run: |
-          nix profile install nixpkgs#colmena
+        run: nix profile install nixpkgs#colmena
 
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          
-          # Extract IPs from nodes.json
-          NODES=$(jq -r 'to_entries[] | .value' k3s-colmena/nodes.json)
 
-          for ip in $NODES; do
+          jq -r 'to_entries[].value' k3s-colmena/nodes.json | while read ip; do
             ssh-keyscan -H "$ip" >> ~/.ssh/known_hosts
           done
 
