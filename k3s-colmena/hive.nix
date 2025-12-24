@@ -8,8 +8,7 @@ let
   };
 in
 {
-  meta = {
-    nixpkgs = import <nixpkgs> {};
-  };
-}
-// builtins.mapAttrs mkNode nodes
+  # nixpkgs must be top-level
+  nixpkgs = import <nixpkgs> {};
+
+} // builtins.mapAttrs mkNode nodes
