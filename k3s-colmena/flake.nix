@@ -6,17 +6,15 @@
     colmena.url = "github:zhaofengli/colmena";
   };
 
-  outputs = { self, nixpkgs, colmena, ... }: {
+  outputs = { self, nixpkgs, colmena, ... }:
+  let
+    system = "aarch64-linux";
+  in {
     colmena = {
-      meta = {
-        nixpkgs = import nixpkgs {
-          system = "aarch64-linux";
+        meta = {
+          nixpkgs = import nixpkgs { inherit system; };
         };
-      };
-
-      imports = [
-        ./hive.nix
-      ];
-    };
+      }
+      // import ./hive.nix;
   };
 }
