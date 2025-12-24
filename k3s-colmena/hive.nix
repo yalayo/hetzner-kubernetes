@@ -1,11 +1,9 @@
 let
-  tf = builtins.fromJSON (builtins.readFile ./terraform.json);
-
-  nodes = tf.k3s_nodes.value;
+  nodes = builtins.fromJSON (builtins.readFile ./terraform.json);
 
   mkNode = name: ip: {
     deployment.targetHost = ip;
-    deployment.targetUser = "root"; # Hetzner default
+    deployment.targetUser = "root";
     imports = [ ./node.nix ];
   };
 in
