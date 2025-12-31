@@ -35,7 +35,7 @@ in
         "--protect-kernel-defaults"
       ]
       ++ map (name:
-        "--tls-san ${config.colmena.deployment.nodes.${name}.deployment.targetHost}"
+        "--tls-san ${config.colmena.nodes.${name}.deployment.targetHost}"
       ) nodes
       ++ [
         "--tls-san ${apiHostname}"
