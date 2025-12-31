@@ -9,11 +9,14 @@
   outputs = { self, nixpkgs, colmena, ... }:
   let
     system = "aarch64-linux";
-    pkgs = import nixpkgs { inherit system; };
     hive = import ./hive.nix;
   in {
     colmena = {
       nodes = hive.nodes;
+
+      meta = {
+        nixpkgs = nixpkgs.url;  #pass the URL, not the full pkgs
+      };
     };
   };
 }
