@@ -1,9 +1,9 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, clusterNodes, clusterNodeNames, ... }:
 
 let
-  nodes = builtins.attrNames config.colmena.nodes;
-  sortedNodes = lib.sort builtins.lessThan nodes;
-  isClusterInit = config.networking.hostName == builtins.head sortedNodes;
+  sortedNodes = lib.sort builtins.lessThan clusterNodeNames;
+  isClusterInit =
+    config.networking.hostName == builtins.head sortedNodes;
 
   apiHostname = "kube.example.com";
 in
@@ -35,8 +35,8 @@ in
         "--protect-kernel-defaults"
       ]
       ++ map (name:
-        "--tls-san ${config.colmena.nodes.${name}.deployment.targetHost}"
-      ) nodes
+        "--tls-san ${clusterNodes.${name}}"
+      ) clusterNodeNames
       ++ [
         "--tls-san ${apiHostname}"
       ]
