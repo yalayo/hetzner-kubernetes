@@ -9,12 +9,14 @@
   outputs = { self, nixpkgs, colmena, ... }:
   let
     system = "aarch64-linux";
-    nixpkgsPkgs = import nixpkgs { inherit system; };
+    pkgs = import nixpkgs { inherit system; };
     hive = import ./hive.nix;
   in {
-    colmena = hive // {
+    colmena = {
+      nodes = hive.nodes;
+
       meta = {
-        nixpkgs = nixpkgsPkgs;
+        nixpkgs = pkgs;
       };
     };
   };
