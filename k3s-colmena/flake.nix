@@ -14,10 +14,6 @@
   in {
     colmena = {
       nodes = hive.nodes;
-
-      meta = {
-        nixpkgs = pkgs;
-      };
     };
   };
 }
