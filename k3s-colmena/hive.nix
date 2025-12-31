@@ -1,5 +1,5 @@
 let
-  nodes = builtins.fromJSON (builtins.readFile ./terraform.json);
+  nodesJson = builtins.fromJSON (builtins.readFile ./terraform.json);
 
   mkNode = name: ip: {
     deployment = {
@@ -7,7 +7,11 @@ let
       targetUser = "root";
     };
 
+    networking.hostName = name;
+
     imports = [ ./node.nix ];
   };
 in
-builtins.mapAttrs mkNode nodes
+{
+  nodes = builtins.mapAttrs mkNode nodesJson;
+}
