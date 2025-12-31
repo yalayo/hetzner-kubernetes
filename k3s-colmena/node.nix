@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  nodes = builtins.attrNames config.colmena.deployment.nodes;
+  nodes = builtins.attrNames config.colmena.nodes;
   sortedNodes = lib.sort builtins.lessThan nodes;
   isClusterInit = config.networking.hostName == builtins.head sortedNodes;
 
