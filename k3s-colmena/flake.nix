@@ -9,14 +9,24 @@
   outputs = { self, nixpkgs, colmena, ... }:
   let
     system = "aarch64-linux";
+
+    pkgs = import nixpkgs {
+      inherit system;
+      overlays = [];
+      config = {};
+    };
+
     hive = import ./hive.nix;
   in {
     colmena = {
       nodes = hive.nodes;
 
       meta = {
-        nixpkgs = nixpkgs;
-        nodeNixpkgs = builtins.mapAttrs (_: _: nixpkgs) hive.nodes;
+        # REQUIRED: instantiated nixpkgs
+        nixpkgs = pkgs;
+
+        # REQUIRED in hermetic mode
+        nodeNixpkgs = builtins.mapAttrs (_: _: pkgs) hive.nodes;
       };
     };
   };
