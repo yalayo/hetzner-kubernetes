@@ -22,11 +22,9 @@
       nodes = hive;
 
       meta = {
-        # REQUIRED: instantiated nixpkgs
         nixpkgs = pkgs;
 
-        # REQUIRED in hermetic mode
-        nodeNixpkgs = builtins.mapAttrs (_: _: pkgs) hive.nodes;
+        nodeNixpkgs = builtins.mapAttrs (_: _: pkgs) hive;
       };
     };
   };
