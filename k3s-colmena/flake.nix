@@ -19,7 +19,7 @@
     hive = import ./hive.nix;
   in {
     colmena = {
-      nodes = hive.nodes;
+      nodes = hive;
 
       meta = {
         # REQUIRED: instantiated nixpkgs

@@ -10,7 +10,6 @@ let
 
     networking.hostName = name;
 
-    # pass cluster data INTO the module
     _module.args = {
       clusterNodes = nodesJson;
       clusterNodeNames = nodeNames;
@@ -19,6 +18,4 @@ let
     imports = [ ./node.nix ];
   };
 in
-{
-  nodes = builtins.mapAttrs mkNode nodesJson;
-}
+builtins.mapAttrs mkNode nodesJson
