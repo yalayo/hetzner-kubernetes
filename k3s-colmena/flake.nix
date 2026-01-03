@@ -15,7 +15,8 @@
       nodes = hive.nodes;
 
       meta = {
-        nixpkgs = nixpkgs.url;  #pass the URL, not the full pkgs
+        nixpkgs = nixpkgs;
+        nodeNixpkgs = builtins.mapAttrs (_: _: nixpkgs) hive.nodes;
       };
     };
   };
