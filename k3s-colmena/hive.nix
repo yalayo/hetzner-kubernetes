@@ -1,17 +1,10 @@
 let
   nodesJson = builtins.fromJSON (builtins.readFile ./terraform.json);
-  nodeNames = builtins.attrNames nodesJson;
 
   mkNode = name: ip: {
     deployment = {
       targetHost = ip;
       targetUser = "root";
-    };
-
-
-    _module.args = {
-      clusterNodes = nodesJson;
-      clusterNodeNames = nodeNames;
     };
 
     imports = [ ./node.nix ];

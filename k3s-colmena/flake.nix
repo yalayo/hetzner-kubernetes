@@ -17,14 +17,22 @@
     };
 
     hive = import ./hive.nix;
+
+    nodesJson = builtins.fromJSON (builtins.readFile ./terraform.json);
+    nodeNames = builtins.attrNames nodesJson;
   in {
     colmena = {
       nodes = hive;
 
       meta = {
         nixpkgs = pkgs;
-
         nodeNixpkgs = builtins.mapAttrs (_: _: pkgs) hive;
+
+        # CORRECT way to pass shared data
+        specialArgs = {
+          clusterNodes = nodesJson;
+          clusterNodeNames = nodeNames;
+        };
       };
     };
   };
