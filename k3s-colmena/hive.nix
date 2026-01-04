@@ -7,6 +7,9 @@ let
       targetUser = "root";
     };
 
+    # Explicitly set the hostname to match the attribute name
+    networking.hostName = name;
+
     imports = [ ./node.nix ];
   };
 in

@@ -22,18 +22,15 @@
     nodeNames = builtins.attrNames nodesJson;
   in {
     colmena = {
-      nodes = hive;
-
       meta = {
         nixpkgs = pkgs;
         nodeNixpkgs = builtins.mapAttrs (_: _: pkgs) hive;
 
-        # CORRECT way to pass shared data
         specialArgs = {
           clusterNodes = nodesJson;
           clusterNodeNames = nodeNames;
         };
       };
-    };
+    } // hive; # <--- Use the // operator to merge the nodes into the top level
   };
 }
